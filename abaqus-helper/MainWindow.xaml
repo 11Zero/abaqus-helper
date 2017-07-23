@@ -1,0 +1,17 @@
+﻿<Window x:Class="abaqus_helper.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="多层框架结构abaqus建模助手" Height="654" Width="1200" Loaded="Window_Loaded" xmlns:my="clr-namespace:abaqus_helper.CADCtrl">
+    <Grid Height="616">
+        <TextBlock Height="23" HorizontalAlignment="Left" Margin="34,28,0,0" Name="textBlock_x" Text="X方向轴间距" VerticalAlignment="Top" />
+        <TextBox Height="23" HorizontalAlignment="Left" Margin="120,28,0,0" Name="textBox_x" VerticalAlignment="Top" Width="267" />
+        <TextBlock Height="23" HorizontalAlignment="Left" Margin="34,57,0,0" Name="textBlock_y" Text="Y方向轴间距" VerticalAlignment="Top" />
+        <TextBox Height="23" HorizontalAlignment="Left" Margin="120,57,0,0" Name="textBox_y" VerticalAlignment="Top" Width="267" />
+        <my:CADCtrl HorizontalAlignment="Right" x:Name="CADCtrl" VerticalAlignment="Top" Height="580" Width="652" />
+        <DockPanel Height="21" HorizontalAlignment="Left" Name="dockPanel_bottom" VerticalAlignment="Bottom" Width="1178">
+            <StatusBar Height="21" Name="statusBar" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="556" />
+            <ProgressBar Height="21" Name="progressBar"  VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="128" />
+        </DockPanel>
+        <Button Content="Button" Height="59" HorizontalAlignment="Left" Margin="66,165,0,0" Name="button1" VerticalAlignment="Top" Width="143" Click="button1_Click" />
+    </Grid>
+</Window>
