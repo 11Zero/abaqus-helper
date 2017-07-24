@@ -28,6 +28,7 @@ namespace abaqus_helper.CADCtrl
         private OpenGL m_openGLCtrl;
         private int LineNumber ;
         private int RectNumber ;
+        private double m_wheel_multi;//滚轮滚动一次放大的倍数
         Dictionary<int, CADLine> AllLines = new Dictionary<int, CADLine>();
         Dictionary<int, CADRect> AllRects = new Dictionary<int, CADRect>();
         Dictionary<int, CADLine> SelLines = new Dictionary<int, CADLine>();
@@ -42,6 +43,7 @@ namespace abaqus_helper.CADCtrl
             m_center_offset = new Point(0,0);
             m_distance = -10;
             m_scale = 0.001;
+            m_wheel_multi = 0.2;
             LineNumber = 0;
             RectNumber = 0;
         }
@@ -123,8 +125,18 @@ namespace abaqus_helper.CADCtrl
         {
             if (e.MiddleButton == MouseButtonState.Pressed)
             {
-                MidMouseDownStart = e.GetPosition(e.Source as FrameworkElement);
-                this.Cursor = Cursors.SizeAll;
+                if (e.ClickCount == 2)
+                {
+                    this.Cursor = Cursors.SizeAll;
+                    m_center_offset.X = 0;
+                    m_center_offset.Y = 0;
+                    m_scale = 0.0001;
+                }
+                else if (e.ClickCount == 1)
+                {
+                    MidMouseDownStart = e.GetPosition(e.Source as FrameworkElement);
+                    this.Cursor = Cursors.SizeAll;
+                }
             }
         }
 
@@ -155,23 +167,34 @@ namespace abaqus_helper.CADCtrl
 
         private void OpenGLControl_MouseWheel(object sender, MouseWheelEventArgs e)
         {
-
+            Vector vDistance = new Vector();
             if (e.Delta > 0)
             {
-                m_scale -= m_scale/5;
+                vDistance.X = (m_center_offset.X - e.GetPosition(e.Source as FrameworkElement).X + this.Width / 2) * -m_wheel_multi;
+                vDistance.Y = (m_center_offset.Y + e.GetPosition(e.Source as FrameworkElement).Y - this.Height / 2) * -m_wheel_multi;
+                m_scale -= m_scale*m_wheel_multi;
             }
             else
             {
-                m_scale += m_scale / 5;
+                vDistance.X = (m_center_offset.X - e.GetPosition(e.Source as FrameworkElement).X + this.Width / 2) * m_wheel_multi;
+                vDistance.Y = (m_center_offset.Y + e.GetPosition(e.Source as FrameworkElement).Y - this.Height / 2) * m_wheel_multi;
+                m_scale += m_scale * m_wheel_multi;
             }
 
             if (m_scale <= 0.000001)
                 m_scale = 0.000001;
+            else
+            {
+                m_center_offset.X = m_center_offset.X + vDistance.X;
+                m_center_offset.Y = m_center_offset.Y + vDistance.Y;
+            }
+            
 
         }
 
         private void openGLCtrl_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
+            
             //if (e.ChangedButton == MouseButton.Middle)
             //{
             //    m_openGLCtrl.Translate(m_center_offset.X, m_center_offset.Y, 0);
@@ -310,8 +333,6 @@ namespace abaqus_helper.CADCtrl
         public void UserSelLine(int id)
         {
             this.SelLine(id);
-            //this.DrawSelLine(id);
-
         }
 
         private void DelLine(int line_id)
