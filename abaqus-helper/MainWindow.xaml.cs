@@ -190,7 +190,8 @@ namespace abaqus_helper
 
         private void button1_Click(object sender, RoutedEventArgs e)
         {
-            CADCtrl.UserDrawLine(new Point(0,0),new Point(10000,20000));
+            CADCtrl.UserDrawLine(new Point(0,0),new Point(20000,10000));
+            CADCtrl.UserDrawLine(new Point(0, 0), new Point(10000, 20000));
             //CADCtrl.UserDrawLine(new Point(10000, 0), new Point(10000, 20000));
             //CADCtrl.UserDrawLine(new Point(10000, 20000), new Point(0, 20000));
             //CADCtrl.UserDrawLine(new Point(0, 20000), new Point(0, 0));

@@ -7,7 +7,7 @@
         <TextBox Height="23" HorizontalAlignment="Left" Margin="120,28,0,0" Name="textBox_x" VerticalAlignment="Top" Width="267" />
         <TextBlock Height="23" HorizontalAlignment="Left" Margin="34,57,0,0" Name="textBlock_y" Text="Y方向轴间距" VerticalAlignment="Top" />
         <TextBox Height="23" HorizontalAlignment="Left" Margin="120,57,0,0" Name="textBox_y" VerticalAlignment="Top" Width="267" />
-        <my:CADCtrl HorizontalAlignment="Right" x:Name="CADCtrl" VerticalAlignment="Top" Height="591" Width="902" />
+        <my:CADCtrl HorizontalAlignment="Right" x:Name="CADCtrl" VerticalAlignment="Top" Height="591" Width="843" />
         <DockPanel Height="21" HorizontalAlignment="Left" Name="dockPanel_bottom" VerticalAlignment="Bottom" Width="1178">
             <StatusBar Height="21" Name="statusBar" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="556" />
             <ProgressBar Height="21" Name="progressBar"  VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="128" />

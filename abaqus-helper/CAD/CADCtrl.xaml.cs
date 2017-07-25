@@ -26,8 +26,10 @@ namespace abaqus_helper.CADCtrl
         private double m_distance;
         private double m_scale;
         private OpenGL m_openGLCtrl;
+        private double m_pixaxis ;//像素对应平移的倍数
         private int LineNumber ;
         private int RectNumber ;
+        private CADRect m_border;
         private double m_wheel_multi;//滚轮滚动一次放大的倍数
         Dictionary<int, CADLine> AllLines = new Dictionary<int, CADLine>();
         Dictionary<int, CADRect> AllRects = new Dictionary<int, CADRect>();
@@ -40,12 +42,21 @@ namespace abaqus_helper.CADCtrl
         {
             InitializeComponent();
             m_openGLCtrl = openGLCtrl.OpenGL;
-            m_center_offset = new Point(0,0);
+            
+        }
+        private void UserControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            m_openGLCtrl = openGLCtrl.OpenGL;
+            m_center_offset = new Point(0, 0);
             m_distance = -10;
-            m_scale = 0.001;
+            m_pixaxis = 0.1208;//与移动速度成反比
+            m_scale = 0.0002;
+            m_border = new CADRect(0,0,0,0);
             m_wheel_multi = 0.2;
             LineNumber = 0;
             RectNumber = 0;
+            m_pixaxis = m_pixaxis * this.Height;//(this.Width < this.Height ? this.Width : this.Height);
+            //m_scale = m_scale / this.Height;// (this.Width < this.Height ? this.Width : this.Height);
         }
 
         /// <summary>
@@ -82,8 +93,8 @@ namespace abaqus_helper.CADCtrl
             //m_openGLCtrl.Perspective(60.0f, (double)Width / (double)Height, 0.01, 100.0);
             //m_openGLCtrl.Viewport(0, 0, (int)(this.Width > this.Height ? this.Width : this.Height),
             //    (int)(this.Width > this.Height ? this.Width : this.Height));
-
-            m_openGLCtrl.Translate(m_center_offset.X/70, m_center_offset.Y/70, m_distance);
+            
+            m_openGLCtrl.Translate(m_center_offset.X / m_pixaxis, m_center_offset.Y / m_pixaxis, m_distance);
             //m_openGLCtrl.Translate(0, 0, m_distance);
             m_openGLCtrl.Scale(m_scale, m_scale, 0);
             //m_openGLCtrl.Ortho2D(0.0,this.Width,0.0,this.Height);
@@ -128,14 +139,41 @@ namespace abaqus_helper.CADCtrl
                 if (e.ClickCount == 2)
                 {
                     this.Cursor = Cursors.SizeAll;
-                    m_center_offset.X = 0;
-                    m_center_offset.Y = 0;
-                    m_scale = 0.0001;
+                    m_scale = 8 / ((m_border.m_ye - m_border.m_ys) < (m_border.m_xe - m_border.m_xs)?(m_border.m_ye - m_border.m_ys) : (m_border.m_xe - m_border.m_xs));
+                    m_center_offset.X = -(m_border.m_xe - m_border.m_xs) / 2 * m_pixaxis * m_scale;
+                    m_center_offset.Y = -(m_border.m_ye - m_border.m_ys) / 2 * m_pixaxis * m_scale;
                 }
                 else if (e.ClickCount == 1)
                 {
                     MidMouseDownStart = e.GetPosition(e.Source as FrameworkElement);
                     this.Cursor = Cursors.SizeAll;
+                }
+            }
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+
+                Point mousepos = new Point(m_currentpos.X / m_scale / m_pixaxis, m_currentpos.Y / m_scale / m_pixaxis);
+                int id_sel = -1;
+                double sel_dis = 1 / m_scale;
+                foreach (int id in this.AllLines.Keys)
+                {
+                    double dis = this.GetDistance(mousepos,AllLines[id]);
+                    if ( dis < 0.06 / m_scale && dis < sel_dis)
+                    {
+                        id_sel = id;
+                        sel_dis = dis;
+                    }
+                }
+                if (id_sel > 0)
+                {
+
+                    if (!SelLines.ContainsKey(id_sel))
+                    {
+                        SelLines.Clear();
+                        this.SelLine(id_sel);
+                    }
+                    else
+                        SelLines.Clear();
                 }
             }
         }
@@ -227,10 +265,9 @@ namespace abaqus_helper.CADCtrl
             {
                 this.DrawRect(value);
             }
-            
-            
 
-            string pos_str = string.Format("Position:[{0:0.00},{1:0.00}]", m_currentpos.X / m_scale / 70, m_currentpos.Y / m_scale / 70);
+
+            string pos_str = string.Format("Position:[{0:0.00},{1:0.00}]", m_currentpos.X / m_scale / m_pixaxis, m_currentpos.Y / m_scale / m_pixaxis);
             this.DrawText(pos_str, new Point(0, 5));
         }
 
@@ -241,8 +278,68 @@ namespace abaqus_helper.CADCtrl
             if (this.AllLines.ContainsKey(LineNumber))
                 AllLines[LineNumber] = line;
             else
+            {
                 AllLines.Add(LineNumber, line);
+                if (line.m_xs > line.m_xe)
+                {
+                    m_border.m_xs = m_border.m_xs < line.m_xe ? m_border.m_xs : line.m_xe;
+                    m_border.m_xe = m_border.m_xe > line.m_xs ? m_border.m_xe : line.m_xs;
+                }
+                else
+                {
+                    m_border.m_xs = m_border.m_xs < line.m_xs ? m_border.m_xs : line.m_xs;
+                    m_border.m_xe = m_border.m_xe > line.m_xe ? m_border.m_xe : line.m_xe;
+                }
+                if (line.m_ys > line.m_ye)
+                {
+                    m_border.m_ys = m_border.m_ys < line.m_ye ? m_border.m_ys : line.m_ye;
+                    m_border.m_ye = m_border.m_ye > line.m_ys ? m_border.m_ye : line.m_ys;
+                }
+                else
+                {
+                    m_border.m_ys = m_border.m_ys < line.m_ys ? m_border.m_ys : line.m_ys;
+                    m_border.m_ye = m_border.m_ye > line.m_ye ? m_border.m_ye : line.m_ye;
+                }
+
+            }
         }
+
+
+
+
+
+        private void AddRect(CADRect rect)
+        {
+            RectNumber++;
+            rect.m_id = RectNumber;
+            if (this.AllRects.ContainsKey(RectNumber))
+                AllRects[RectNumber] = rect;
+            else
+            {
+                AllRects.Add(RectNumber, rect);
+                if (rect.m_xs > rect.m_xe)
+                {
+                    m_border.m_xs = m_border.m_xs < rect.m_xe ? m_border.m_xs : rect.m_xe;
+                    m_border.m_xe = m_border.m_xe > rect.m_xs ? m_border.m_xe : rect.m_xs;
+                }
+                else
+                {
+                    m_border.m_xs = m_border.m_xs < rect.m_xs ? m_border.m_xs : rect.m_xs;
+                    m_border.m_xe = m_border.m_xe > rect.m_xe ? m_border.m_xe : rect.m_xe;
+                }
+                if (rect.m_ys > rect.m_ye)
+                {
+                    m_border.m_ys = m_border.m_ys < rect.m_ye ? m_border.m_ys : rect.m_ye;
+                    m_border.m_ye = m_border.m_ye > rect.m_ys ? m_border.m_ye : rect.m_ys;
+                }
+                else
+                {
+                    m_border.m_ys = m_border.m_ys < rect.m_ys ? m_border.m_ys : rect.m_ys;
+                    m_border.m_ye = m_border.m_ye > rect.m_ye ? m_border.m_ye : rect.m_ye;
+                }
+            }
+        }
+
 
         private void SelLine(int line_id)
         {
@@ -254,31 +351,6 @@ namespace abaqus_helper.CADCtrl
                 this.SelLines.Remove(line_id);
         }
 
-
-        private void DrawSelLine(int line_id)
-        {
-            if (!AllLines.ContainsKey(line_id))
-                return;
-            CADLine line = AllLines[line_id];
-            m_openGLCtrl.LineWidth(4);
-            m_openGLCtrl.Begin(SharpGL.Enumerations.BeginMode.Lines);
-            m_openGLCtrl.Color(0.7f, 0.2f, 0.2f);
-            m_openGLCtrl.Vertex(line.m_xs, line.m_ys);
-            m_openGLCtrl.Vertex(line.m_xe, line.m_ye);
-
-            m_openGLCtrl.End();
-            m_openGLCtrl.Flush();
-        }
-
-        private void AddRect(CADRect rect)
-        {
-            RectNumber++;
-            rect.m_id = RectNumber;
-            if (this.AllRects.ContainsKey(RectNumber))
-                AllRects[RectNumber] = rect;
-            else
-                AllRects.Add(RectNumber, rect);
-        }
 
         private void DrawLine(CADLine line)
         {
@@ -309,6 +381,21 @@ namespace abaqus_helper.CADCtrl
             
             m_openGLCtrl.Vertex(rect.m_xs, rect.m_ye);
             m_openGLCtrl.Vertex(rect.m_xs, rect.m_ys);
+
+            m_openGLCtrl.End();
+            m_openGLCtrl.Flush();
+        }
+
+        private void DrawSelLine(int line_id)
+        {
+            if (!AllLines.ContainsKey(line_id))
+                return;
+            CADLine line = AllLines[line_id];
+            m_openGLCtrl.LineWidth(5);
+            m_openGLCtrl.Begin(SharpGL.Enumerations.BeginMode.Lines);
+            m_openGLCtrl.Color(0.7f, 0.2f, 0.2f);
+            m_openGLCtrl.Vertex(line.m_xs, line.m_ys);
+            m_openGLCtrl.Vertex(line.m_xe, line.m_ye);
 
             m_openGLCtrl.End();
             m_openGLCtrl.Flush();
@@ -349,6 +436,23 @@ namespace abaqus_helper.CADCtrl
 
         }
 
+        private double GetDistance(Point point, CADLine line)
+        {
+            double result = 0.0;
+            double a = line.m_ys - line.m_ye;
+            double b = line.m_xe - line.m_xs;
+            double c = line.m_xs * line.m_ye - line.m_ys * line.m_xe;
+            result = (a * point.X + b * point.Y + c) / Math.Sqrt(a*a+b*b);
+            return Math.Abs( result);
+
+        }
+        private double GetDistance(Point point, CADRect rect)
+        {
+            double result = 0.0;
+            return result;
+        }
+
+       
        
 
 
