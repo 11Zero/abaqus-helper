@@ -14,6 +14,7 @@ using System.Windows.Shapes;
 using SharpGL;
 using SharpGL.SceneGraph;
 
+
 namespace abaqus_helper.CADCtrl
 {
 
@@ -27,6 +28,7 @@ namespace abaqus_helper.CADCtrl
         private double m_scale;
         private OpenGL m_openGLCtrl;
         private double m_pixaxis ;//像素对应平移的倍数
+        private double m_gridstep;//栅格间距，像素为单位
         private int LineNumber ;
         private int RectNumber ;
         private CADRect m_border;
@@ -53,6 +55,7 @@ namespace abaqus_helper.CADCtrl
             m_scale = 0.0002;
             m_border = new CADRect(0,0,0,0);
             m_wheel_multi = 0.2;
+            m_gridstep = 50;
             LineNumber = 0;
             RectNumber = 0;
             m_pixaxis = m_pixaxis * this.Height;//(this.Width < this.Height ? this.Width : this.Height);
@@ -140,6 +143,8 @@ namespace abaqus_helper.CADCtrl
                 {
                     this.Cursor = Cursors.SizeAll;
                     m_scale = 8 / ((m_border.m_ye - m_border.m_ys) < (m_border.m_xe - m_border.m_xs)?(m_border.m_ye - m_border.m_ys) : (m_border.m_xe - m_border.m_xs));
+                    if (m_scale > 1000000)
+                        m_scale = 0.0002;
                     m_center_offset.X = -(m_border.m_xe - m_border.m_xs) / 2 * m_pixaxis * m_scale;
                     m_center_offset.Y = -(m_border.m_ye - m_border.m_ys) / 2 * m_pixaxis * m_scale;
                 }
@@ -153,27 +158,66 @@ namespace abaqus_helper.CADCtrl
             {
 
                 Point mousepos = new Point(m_currentpos.X / m_scale / m_pixaxis, m_currentpos.Y / m_scale / m_pixaxis);
-                int id_sel = -1;
-                double sel_dis = 1 / m_scale;
+                int id_sel_line = -1;
+                double sel_dis_line = 1 / m_scale;
                 foreach (int id in this.AllLines.Keys)
                 {
                     double dis = this.GetDistance(mousepos,AllLines[id]);
-                    if ( dis < 0.06 / m_scale && dis < sel_dis)
+                    if ( dis < 0.06 / m_scale && dis < sel_dis_line)
                     {
-                        id_sel = id;
-                        sel_dis = dis;
+                        id_sel_line = id;
+                        sel_dis_line = dis;
                     }
                 }
-                if (id_sel > 0)
-                {
 
-                    if (!SelLines.ContainsKey(id_sel))
-                    {
-                        SelLines.Clear();
-                        this.SelLine(id_sel);
-                    }
+
+                
+                if (id_sel_line > 0)
+                {
+                    if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)                        
+                        this.SelLine(id_sel_line);
                     else
-                        SelLines.Clear();
+                    {
+                        if (!SelLines.ContainsKey(id_sel_line))
+                            SelLines.Clear();
+                        this.SelLine(id_sel_line);
+                    }
+                }
+                else
+                {
+                    if ((Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control)
+                        this.SelLines.Clear();
+                }
+
+                int id_sel_rect = -1;
+                double sel_dis_rect = 1 / m_scale;
+                foreach (int id in this.AllRects.Keys)
+                {
+                    double dis = this.GetDistance(mousepos, AllRects[id]);
+                    if (dis < 0.06 / m_scale && dis < sel_dis_rect)
+                    {
+                        id_sel_rect = id;
+                        sel_dis_rect = dis;
+                    }
+                }
+
+
+
+                if (id_sel_rect > 0)
+                {
+                    if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+                        this.SelRect(id_sel_rect);
+                    else
+                    {
+                        if (!SelRects.ContainsKey(id_sel_rect))
+                            SelRects.Clear();
+                        this.SelRect(id_sel_rect);
+                    }
+                }
+                else
+                {
+                    if ((Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control)
+                        this.SelRects.Clear();
                 }
             }
         }
@@ -230,31 +274,21 @@ namespace abaqus_helper.CADCtrl
 
         }
 
-        private void openGLCtrl_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            
-            //if (e.ChangedButton == MouseButton.Middle)
-            //{
-            //    m_openGLCtrl.Translate(m_center_offset.X, m_center_offset.Y, 0);
-            //    m_openGLCtrl.Scale(1, 1, 1);
-            //    Console.WriteLine("11111");
-            //}
 
-        }
+
 
         private void RedrawAll()
         {
-            this.DrawLine(new CADLine(0, 0, 0.5 / m_scale, 0));
-            this.DrawLine(new CADLine(0.5 / m_scale, 0, 0.4 / m_scale, 0.05 / m_scale));
-            this.DrawLine(new CADLine(0.5 / m_scale, 0, 0.4 / m_scale, -0.05 / m_scale));
-
-            this.DrawLine(new CADLine(0, 0, 0, 0.5 / m_scale));
-            this.DrawLine(new CADLine(0, 0.5 / m_scale, 0.05 / m_scale, 0.4 / m_scale));
-            this.DrawLine(new CADLine(0, 0.5 / m_scale, -0.05 / m_scale, 0.4 / m_scale));
-
+            this.DrawGrids();
+            
             foreach (int value in this.SelLines.Keys)
             {
                 this.DrawSelLine(value);
+            }
+
+            foreach (int value in this.SelRects.Keys)
+            {
+                this.DrawSelRect(value);
             }
 
             foreach (CADLine value in this.AllLines.Values)
@@ -265,6 +299,14 @@ namespace abaqus_helper.CADCtrl
             {
                 this.DrawRect(value);
             }
+
+            this.DrawLine(new CADLine(0, 0, 0.5 / m_scale, 0));
+            this.DrawLine(new CADLine(0.5 / m_scale, 0, 0.4 / m_scale, 0.05 / m_scale));
+            this.DrawLine(new CADLine(0.5 / m_scale, 0, 0.4 / m_scale, -0.05 / m_scale));
+
+            this.DrawLine(new CADLine(0, 0, 0, 0.5 / m_scale));
+            this.DrawLine(new CADLine(0, 0.5 / m_scale, 0.05 / m_scale, 0.4 / m_scale));
+            this.DrawLine(new CADLine(0, 0.5 / m_scale, -0.05 / m_scale, 0.4 / m_scale));
 
 
             string pos_str = string.Format("Position:[{0:0.00},{1:0.00}]", m_currentpos.X / m_scale / m_pixaxis, m_currentpos.Y / m_scale / m_pixaxis);
@@ -351,6 +393,16 @@ namespace abaqus_helper.CADCtrl
                 this.SelLines.Remove(line_id);
         }
 
+        private void SelRect(int rect_id)
+        {
+            if (!this.SelRects.ContainsKey(rect_id))
+            {
+                this.SelRects.Add(rect_id, this.AllRects[rect_id]);
+            }
+            else
+                this.SelRects.Remove(rect_id);
+        }
+
 
         private void DrawLine(CADLine line)
         {
@@ -363,7 +415,16 @@ namespace abaqus_helper.CADCtrl
             m_openGLCtrl.Flush();
         }
 
-
+        private void DrawGridLine(CADLine line)
+        {
+            m_openGLCtrl.LineWidth(1);
+            m_openGLCtrl.Begin(SharpGL.Enumerations.BeginMode.Lines);
+            m_openGLCtrl.Color(0.2f, 0.2f, 0.2f);
+            m_openGLCtrl.Vertex(line.m_xs, line.m_ys);
+            m_openGLCtrl.Vertex(line.m_xe, line.m_ye);
+            m_openGLCtrl.End();
+            m_openGLCtrl.Flush();
+        }
 
         private void DrawRect(CADRect rect)
         {
@@ -401,11 +462,71 @@ namespace abaqus_helper.CADCtrl
             m_openGLCtrl.Flush();
         }
 
+        private void DrawSelRect(int rect_id)
+        {
+            if (!AllRects.ContainsKey(rect_id))
+                return;
+            CADRect rect = AllRects[rect_id];
+            
+            m_openGLCtrl.LineWidth(5);
+            m_openGLCtrl.Begin(SharpGL.Enumerations.BeginMode.Lines);
+            m_openGLCtrl.Color(0.2f, 0.7f, 0.2f);
+            m_openGLCtrl.Vertex(rect.m_xs, rect.m_ys);
+            m_openGLCtrl.Vertex(rect.m_xe, rect.m_ys);
+
+            m_openGLCtrl.Vertex(rect.m_xe, rect.m_ys);
+            m_openGLCtrl.Vertex(rect.m_xe, rect.m_ye);
+
+            m_openGLCtrl.Vertex(rect.m_xe, rect.m_ye);
+            m_openGLCtrl.Vertex(rect.m_xs, rect.m_ye);
+
+            m_openGLCtrl.Vertex(rect.m_xs, rect.m_ye);
+            m_openGLCtrl.Vertex(rect.m_xs, rect.m_ys);
+
+            m_openGLCtrl.End();
+            m_openGLCtrl.Flush();
+        }
+
+
         private void DrawText(string text, Point pos)
         {
             m_openGLCtrl.DrawText((int)(pos.X), (int)(pos.Y), 0.5f, 1.0f, 0.5f, "Lucida Console", 12.0f, text);
         }
 
+        private void DrawGrids()
+        {
+            
+            CADLine line = new CADLine(0,0,0,0);
+          
+            for(int i=0;i<=(int)(this.Width/m_gridstep/2)+1;i++)
+            {
+                line.m_xs = (float)((i - (int)(m_center_offset.X / m_gridstep)) * (m_gridstep / m_scale / m_pixaxis));
+                line.m_xe = (float)((i - (int)(m_center_offset.X / m_gridstep)) * (m_gridstep / m_scale / m_pixaxis));
+                line.m_ys = (float)((-this.Height / 2 - m_center_offset.Y) / m_scale / m_pixaxis);
+                line.m_ye = (float)((this.Height / 2 - m_center_offset.Y) / m_scale / m_pixaxis);
+                this.DrawGridLine(line);
+                line.m_xs = (float)((-i - (int)(m_center_offset.X / m_gridstep)) * (m_gridstep / m_scale / m_pixaxis));
+                line.m_xe = (float)((-i - (int)(m_center_offset.X / m_gridstep)) * (m_gridstep / m_scale / m_pixaxis));
+                line.m_ys = (float)((-this.Height / 2 - m_center_offset.Y) / m_scale / m_pixaxis);
+                line.m_ye = (float)((this.Height / 2 - m_center_offset.Y) / m_scale / m_pixaxis);
+                this.DrawGridLine(line);
+            }
+
+            for (int i = 0; i <= (int)(this.Height / m_gridstep / 2)+1; i++)
+            {
+                line.m_ys = (float)((i - (int)(m_center_offset.Y / m_gridstep)) * (m_gridstep / m_scale / m_pixaxis));
+                line.m_ye = (float)((i - (int)(m_center_offset.Y / m_gridstep)) * (m_gridstep / m_scale / m_pixaxis));
+                line.m_xs = (float)((-this.Width / 2 - m_center_offset.X) / m_scale / m_pixaxis);
+                line.m_xe = (float)((this.Width / 2 - m_center_offset.X) / m_scale / m_pixaxis);
+                this.DrawGridLine(line);
+                line.m_ys = (float)((-i - (int)(m_center_offset.Y / m_gridstep)) * (m_gridstep / m_scale / m_pixaxis));
+                line.m_ye = (float)((-i - (int)(m_center_offset.Y / m_gridstep)) * (m_gridstep / m_scale / m_pixaxis));
+                line.m_xs = (float)((-this.Width / 2 - m_center_offset.X) / m_scale / m_pixaxis);
+                line.m_xe = (float)((this.Width / 2 - m_center_offset.X) / m_scale / m_pixaxis);
+                this.DrawGridLine(line);
+            }
+           
+        }
 
         public void UserDrawLine(Point p1, Point p2)
         {
@@ -449,9 +570,36 @@ namespace abaqus_helper.CADCtrl
         private double GetDistance(Point point, CADRect rect)
         {
             double result = 0.0;
+            double dis = 0.0;
+            CADLine line = new CADLine(rect.m_xs,rect.m_ys,rect.m_xs,rect.m_ye);
+            dis = this.GetDistance(point, line);
+            result = dis;
+            line.m_xs = rect.m_xe;
+            line.m_ys = rect.m_ye;
+            dis = this.GetDistance(point, line);
+            result = result < dis ? result : dis;
+            line.m_xe = rect.m_xe;
+            line.m_ye = rect.m_ys;
+            dis = this.GetDistance(point, line);
+            result = result < dis ? result : dis;
+            line.m_xs = rect.m_xs;
+            line.m_ys = rect.m_ys;
+            dis = this.GetDistance(point, line);
+            result = result < dis ? result : dis;
             return result;
         }
 
+        //private void openGLCtrl_KeyDown(object sender, KeyEventArgs e)
+        //{
+
+        //}
+
+        //private void openGLCtrl_KeyUp(object sender, KeyEventArgs e)
+        //{
+
+        //}
+
+ 
        
        
 

@@ -18,3 +18,24 @@ D:\C++公用文件夹\My Projects_VS2010\abaqus-helper\abaqus-helper\obj\x86\Deb
 D:\C++公用文件夹\My Projects_VS2010\abaqus-helper\abaqus-helper\obj\x86\Debug\CAD\CADCtrl.g.cs
 D:\C++公用文件夹\My Projects_VS2010\abaqus-helper\abaqus-helper\obj\x86\Debug\GeneratedInternalTypeHelper.g.cs
 D:\C++公用文件夹\My Projects_VS2010\abaqus-helper\abaqus-helper\obj\x86\Debug\abaqus-helper_MarkupCompile.lref
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\bin\Debug\abaqus-helper.exe.config
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\bin\Debug\abaqus-helper.exe
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\bin\Debug\abaqus-helper.pdb
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\bin\Debug\SharpGL.dll
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\bin\Debug\SharpGL.SceneGraph.dll
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\bin\Debug\SharpGL.WPF.dll
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\obj\x86\Debug\CAD\CADCtrl.baml
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\obj\x86\Debug\CAD\CADCtrl.g.cs
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\obj\x86\Debug\MainWindow.g.cs
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\obj\x86\Debug\App.g.cs
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\obj\x86\Debug\GeneratedInternalTypeHelper.g.cs
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\obj\x86\Debug\abaqus-helper_MarkupCompile.cache
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\obj\x86\Debug\abaqus-helper_MarkupCompile.lref
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\obj\x86\Debug\MainWindow.baml
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\obj\x86\Debug\abaqus-helper.g.resources
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\obj\x86\Debug\abaqus_helper.Properties.Resources.resources
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\obj\x86\Debug\GenerateResource.read.1.tlog
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\obj\x86\Debug\GenerateResource.write.1.tlog
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\obj\x86\Debug\abaqus-helper.exe
+C:\Users\Administrator\Desktop\THT\abaqus-helper-master\abaqus-helper\obj\x86\Debug\abaqus-helper.pdb

@@ -14,8 +14,7 @@
             MouseMove="OpenGLControl_MouseMove"
             MouseWheel="OpenGLControl_MouseWheel" 
         Height="{Binding Path=ActualHeight,ElementName=abaqus_helper.CADCtrl.CADCtrl}"
-        Width="{Binding Path=ActualWidth,ElementName=abaqus_helper.CADCtrl.CADCtrl}" 
-        MouseDoubleClick="openGLCtrl_MouseDoubleClick" />
+        Width="{Binding Path=ActualWidth,ElementName=abaqus_helper.CADCtrl.CADCtrl}"/>
     <!--<Grid Height="351" Width="490">
         <sharpGL:OpenGLControl 
             Name="openGLCtrl"
