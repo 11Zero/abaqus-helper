@@ -13,6 +13,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using SharpGL;
 using SharpGL.SceneGraph;
+using System.Collections.ObjectModel;
 
 
 namespace abaqus_helper.CADCtrl
@@ -35,9 +36,9 @@ namespace abaqus_helper.CADCtrl
         private CADRect m_border;
         private double m_wheel_multi;//滚轮滚动一次放大的倍数
         Dictionary<int, CADLine> AllLines = new Dictionary<int, CADLine>();
-        Dictionary<int, int[]> AllPointsInLines = new Dictionary<int, int[]>();
+        Dictionary<int, List<int>> AllPointsInLines = new Dictionary<int, List<int>>();
         Dictionary<int, CADRect> AllRects = new Dictionary<int, CADRect>();
-        Dictionary<int, int[]> AllPointsInRects = new Dictionary<int, int[]>();
+        Dictionary<int, List<int>> AllPointsInRects = new Dictionary<int, List<int>>();
         Dictionary<int, CADPoint> AllPoints = new Dictionary<int, CADPoint>();
         Dictionary<int, CADPoint> SelPoints = new Dictionary<int, CADPoint>();
         Dictionary<int, CADLine> SelLines = new Dictionary<int, CADLine>();
@@ -48,6 +49,8 @@ namespace abaqus_helper.CADCtrl
         Point MidMouseDownStart = new Point(0, 0);
         Point MidMouseDownEnd = new Point(0, 0);
         Point m_currentpos = new Point(0, 0);
+        CADPoint m_cur_sel_point = new CADPoint(0, 0);
+        public ObservableCollection<CADLine> m_sel_rect_list = new ObservableCollection<CADLine>();
         public CADCtrl()
         {
             InitializeComponent();
@@ -180,17 +183,23 @@ namespace abaqus_helper.CADCtrl
                 Point mousepos = new Point(m_currentpos.X / m_scale / m_pixaxis, m_currentpos.Y / m_scale / m_pixaxis);
                 int id_sel_point = -1;
                 double sel_dis_point = 1 / m_scale;
-                foreach (int id in this.AllPoints.Keys)
+                if (AllPoints.Count > 0)
                 {
-                    double dis = this.GetDistance(mousepos, AllPoints[id]);
-                    if (dis < 0.06 / m_scale && dis < sel_dis_point)
+                    foreach (int id in this.AllPoints.Keys)
                     {
-                        id_sel_point = id;
-                        sel_dis_point = dis;
+                        double dis = this.GetDistance(mousepos, AllPoints[id]);
+                        if (dis < 0.06 / m_scale && dis < sel_dis_point)
+                        {
+                            id_sel_point = id;
+                            sel_dis_point = dis;
+                        }
                     }
                 }
+
                 if (id_sel_point > 0)
                 {
+                    if (AllPoints.ContainsKey(id_sel_point))
+                        m_cur_sel_point = AllPoints[id_sel_point].Copy();
 
                     if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
                     {
@@ -207,22 +216,29 @@ namespace abaqus_helper.CADCtrl
                 }
                 else
                 {
+
                     if ((Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control)
+                    {
+                        m_cur_sel_point = new CADPoint();
                         this.SelPoints.Clear();
+                    }
                 }
 
 
                 int id_sel_line = -1;
                 double sel_dis_line = 1 / m_scale;
-                foreach (int id in this.AllLines.Keys)
+                if (AllLines.Count > 0)
                 {
-                    double dis = this.GetDistance(mousepos, AllLines[id]);
-                    if (dis < 0)
-                        continue;
-                    if (dis < 0.06 / m_scale && dis < sel_dis_line)
+                    foreach (int id in this.AllLines.Keys)
                     {
-                        id_sel_line = id;
-                        sel_dis_line = dis;
+                        double dis = this.GetDistance(mousepos, AllLines[id]);
+                        if (dis < 0)
+                            continue;
+                        if (dis < 0.06 / m_scale && dis < sel_dis_line)
+                        {
+                            id_sel_line = id;
+                            sel_dis_line = dis;
+                        }
                     }
                 }
 
@@ -247,15 +263,18 @@ namespace abaqus_helper.CADCtrl
 
                 int id_sel_rect = -1;
                 double sel_dis_rect = 1 / m_scale;
-                foreach (int id in this.AllRects.Keys)
+                if (AllRects.Count > 0)
                 {
-                    double dis = this.GetDistance(mousepos, AllRects[id]);
-                    if (dis < 0)
-                        continue;
-                    if (dis < 0.06 / m_scale && dis < sel_dis_rect)
+                    foreach (int id in this.AllRects.Keys)
                     {
-                        id_sel_rect = id;
-                        sel_dis_rect = dis;
+                        double dis = this.GetDistance(mousepos, AllRects[id]);
+                        if (dis < 0)
+                            continue;
+                        if (dis < 0.06 / m_scale && dis < sel_dis_rect)
+                        {
+                            id_sel_rect = id;
+                            sel_dis_rect = dis;
+                        }
                     }
                 }
 
@@ -268,14 +287,20 @@ namespace abaqus_helper.CADCtrl
                     else
                     {
                         if (!SelRects.ContainsKey(id_sel_rect))
+                        {
                             SelRects.Clear();
+                            m_sel_rect_list.Clear();
+                        }
                         this.SelRect(id_sel_rect);
                     }
                 }
                 else
                 {
                     if ((Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control)
+                    {
                         this.SelRects.Clear();
+                        m_sel_rect_list.Clear();
+                    }
                 }
             }
         }
@@ -344,35 +369,53 @@ namespace abaqus_helper.CADCtrl
             m_openGLCtrl.Scale(m_scale, m_scale, 0);
 
             this.DrawGrids();
-
-            foreach (int value in this.SelLines.Keys)
+            if (SelLines.Count > 0)
             {
-                this.DrawSelLine(value);
+                foreach (int value in this.SelLines.Keys)
+                {
+                    this.DrawSelLine(value);
+                }
             }
 
-            foreach (int value in this.SelRects.Keys)
+            if (SelRects.Count > 0)
             {
-                this.DrawSelRect(value);
+                foreach (int value in this.SelRects.Keys)
+                {
+                    this.DrawSelRect(value);
+                }
             }
 
-            foreach (int value in this.SelPoints.Keys)
+            if (SelPoints.Count > 0)
             {
-                this.DrawSelPoint(value);
+                foreach (int value in this.SelPoints.Keys)
+                {
+                    this.DrawSelPoint(value);
+                }
             }
 
-            foreach (int key in this.AllLines.Keys)
+            if (AllLines.Count > 0)
             {
-                this.DrawLine(AllLines[key], AllColors[AllLinesColor[key]]);
-            }
-            foreach (int key in this.AllRects.Keys)
-            {
-                this.DrawRect(AllRects[key], AllColors[AllRectsColor[key]]);
-            }
-            foreach (int key in this.AllPoints.Keys)
-            {
-                this.DrawPoint(AllPoints[key]);
+                foreach (int key in this.AllLines.Keys)
+                {
+                    this.DrawLine(AllLines[key], AllColors[AllLinesColor[key]]);
+                }
             }
 
+            if (AllRects.Count > 0)
+            {
+                foreach (int key in this.AllRects.Keys)
+                {
+                    this.DrawRect(AllRects[key], AllColors[AllRectsColor[key]]);
+                }
+            }
+
+            if (AllPoints.Count > 0)
+            {
+                foreach (int key in this.AllPoints.Keys)
+                {
+                    this.DrawPoint(AllPoints[key]);
+                }
+            }
             this.DrawLine(new CADLine(0, 0, 0.5 / m_scale, 0));
             this.DrawLine(new CADLine(0.5 / m_scale, 0, 0.4 / m_scale, 0.05 / m_scale));
             this.DrawLine(new CADLine(0.5 / m_scale, 0, 0.4 / m_scale, -0.05 / m_scale));
@@ -382,84 +425,138 @@ namespace abaqus_helper.CADCtrl
             this.DrawLine(new CADLine(0, 0.5 / m_scale, -0.05 / m_scale, 0.4 / m_scale));
 
 
-            string pos_str = string.Format("Position:[{0:0.00},{1:0.00}]", m_currentpos.X / m_scale / m_pixaxis, m_currentpos.Y / m_scale / m_pixaxis);
+            string pos_str = string.Format("Point:[{2:0.00},{3:0.00}]   Position:[{0:0.00},{1:0.00}]", m_currentpos.X / m_scale / m_pixaxis, m_currentpos.Y / m_scale / m_pixaxis, m_cur_sel_point.m_x, m_cur_sel_point.m_y);
             this.DrawText(pos_str, new Point(0, 5));
+            //pos_str = string.Format("Point:[{0:0.00},{1:0.00}]", m_currentpos.X / m_scale / m_pixaxis, m_currentpos.Y / m_scale / m_pixaxis);
+            //this.DrawText(pos_str, new Point(0, 5));
         }
 
         private void AddLine(CADLine line, int color_id = 0)
         {
-            LineNumber++;
-            line.m_id = LineNumber;
+            if (line == null)
+                return;
+            CADLine this_line = line.Copy();
+            if (this_line.m_id == 0)
+            {
+                LineNumber++;
+                this_line.m_id = LineNumber;
+            }
+            int this_line_id = this_line.m_id;
             if (!AllColors.ContainsKey(color_id))
                 color_id = 1;
-            if (this.AllLines.ContainsKey(LineNumber))
+            if (this.AllLines.ContainsKey(this_line_id))
             {
-                AllLines[LineNumber] = line.Copy();
-                AllLinesColor[LineNumber] = color_id;
-                CADPoint point = new CADPoint(line.m_xs, line.m_ys);
+                AllLines[this_line_id] = this_line.Copy();
+                AllLinesColor[this_line_id] = color_id;
+                CADPoint point = new CADPoint(this_line.m_xs, this_line.m_ys);
+                List<int> pointsItems = AllPointsInLines[this_line_id];
+                for (int i = 0; i < pointsItems.Count; i++)
+                {
+                    if (AllPoints.ContainsKey(pointsItems[i]))
+                        AllPoints.Remove(pointsItems[i]);
+                }
+                pointsItems.Clear();
                 this.AddPoint(point);
-                point.m_x = line.m_xe;
-                point.m_y = line.m_ye;
+                pointsItems.Add(PointNumber);
+                point.m_x = this_line.m_xe;
+                point.m_y = this_line.m_ye;
                 this.AddPoint(point);
-                int[] pointsItems = { PointNumber - 1, PointNumber };
-                AllPointsInLines[LineNumber] =  pointsItems;
+                pointsItems.Add(PointNumber);
+                AllPointsInLines[this_line_id] =  pointsItems;
             }
             else
             {
-                AllLines.Add(LineNumber, line.Copy());
-                AllLinesColor.Add(LineNumber, color_id);
-                CADPoint point = new CADPoint(line.m_xs,line.m_ys);
+                AllLines.Add(this_line_id, this_line.Copy());
+                AllLinesColor.Add(this_line_id, color_id);
+                CADPoint point = new CADPoint(this_line.m_xs,this_line.m_ys);
+                List<int> pointsItems = new List<int>();
                 this.AddPoint(point);
-                point.m_x = line.m_xe;
-                point.m_y = line.m_ye;
+                pointsItems.Add(PointNumber);
+                point.m_x = this_line.m_xe;
+                point.m_y = this_line.m_ye;
                 this.AddPoint(point);
-                int[] pointsItems = {PointNumber-1,PointNumber};
-                AllPointsInLines.Add(LineNumber, pointsItems);
-                if (line.m_xs > line.m_xe)
+                pointsItems.Add(PointNumber);
+                AllPointsInLines.Add(this_line_id, pointsItems);
+                if (this_line.m_xs > this_line.m_xe)
                 {
-                    m_border.m_xs = m_border.m_xs < line.m_xe ? m_border.m_xs : line.m_xe;
-                    m_border.m_xe = m_border.m_xe > line.m_xs ? m_border.m_xe : line.m_xs;
+                    m_border.m_xs = m_border.m_xs < this_line.m_xe ? m_border.m_xs : this_line.m_xe;
+                    m_border.m_xe = m_border.m_xe > this_line.m_xs ? m_border.m_xe : this_line.m_xs;
                 }
                 else
                 {
-                    m_border.m_xs = m_border.m_xs < line.m_xs ? m_border.m_xs : line.m_xs;
-                    m_border.m_xe = m_border.m_xe > line.m_xe ? m_border.m_xe : line.m_xe;
+                    m_border.m_xs = m_border.m_xs < this_line.m_xs ? m_border.m_xs : this_line.m_xs;
+                    m_border.m_xe = m_border.m_xe > this_line.m_xe ? m_border.m_xe : this_line.m_xe;
                 }
-                if (line.m_ys > line.m_ye)
+                if (this_line.m_ys > this_line.m_ye)
                 {
-                    m_border.m_ys = m_border.m_ys < line.m_ye ? m_border.m_ys : line.m_ye;
-                    m_border.m_ye = m_border.m_ye > line.m_ys ? m_border.m_ye : line.m_ys;
+                    m_border.m_ys = m_border.m_ys < this_line.m_ye ? m_border.m_ys : this_line.m_ye;
+                    m_border.m_ye = m_border.m_ye > this_line.m_ys ? m_border.m_ye : this_line.m_ys;
                 }
                 else
                 {
-                    m_border.m_ys = m_border.m_ys < line.m_ys ? m_border.m_ys : line.m_ys;
-                    m_border.m_ye = m_border.m_ye > line.m_ye ? m_border.m_ye : line.m_ye;
+                    m_border.m_ys = m_border.m_ys < this_line.m_ys ? m_border.m_ys : this_line.m_ys;
+                    m_border.m_ye = m_border.m_ye > this_line.m_ye ? m_border.m_ye : this_line.m_ye;
                 }
             }
-            //foreach (CADLine value in AllLines.Values)
-            //{
-            //    this.AddPoint(this.GetCrossPoint(line,value));
-            //}
-            //foreach (CADRect value in AllRects.Values)
-            //{
-            //    CADLine temp_line = new CADLine();
-            //    temp_line.m_xs = value.m_xs;
-            //    temp_line.m_ys = value.m_ys;
+            if (AllLines.Count > 0)
+            {
+                foreach (int value in AllLines.Keys)
+                {
+                    CADPoint point = this.GetCrossPoint(this_line, AllLines[value]);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInLines[this_line_id].Add(PointNumber);
+                        AllPointsInLines[value].Add(PointNumber);
+                    }
+                }
+            }
+            if (AllRects.Count > 0)
+            {
+                foreach (int value in AllRects.Keys)
+                {
+                    CADLine temp_this_line = new CADLine();
+                    temp_this_line.m_xs = AllRects[value].m_xs;
+                    temp_this_line.m_ys = AllRects[value].m_ys;
 
-            //    temp_line.m_xe = value.m_xs;
-            //    temp_line.m_ye = value.m_ye;
-            //    this.AddPoint(this.GetCrossPoint(line, temp_line));
-            //    temp_line.m_xs = value.m_xe;
-            //    temp_line.m_ys = value.m_ye;
-            //    this.AddPoint(this.GetCrossPoint(line, temp_line));
-            //    temp_line.m_xe = value.m_xe;
-            //    temp_line.m_ye = value.m_ys;
-            //    this.AddPoint(this.GetCrossPoint(line, temp_line));
-            //    temp_line.m_xs = value.m_xs;
-            //    temp_line.m_ys = value.m_ys;
-            //    this.AddPoint(this.GetCrossPoint(line, temp_line));
- 
-            //}
+                    temp_this_line.m_xe = AllRects[value].m_xs;
+                    temp_this_line.m_ye = AllRects[value].m_ye;
+                    CADPoint point = this.GetCrossPoint(this_line, temp_this_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInLines[this_line_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+                    temp_this_line.m_xs = AllRects[value].m_xe;
+                    temp_this_line.m_ys = AllRects[value].m_ye;
+                    point = this.GetCrossPoint(this_line, temp_this_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInLines[this_line_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+                    temp_this_line.m_xe = AllRects[value].m_xe;
+                    temp_this_line.m_ye = AllRects[value].m_ys;
+                    point = this.GetCrossPoint(this_line, temp_this_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInLines[this_line_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+                    temp_this_line.m_xs = AllRects[value].m_xs;
+                    temp_this_line.m_ys = AllRects[value].m_ys;
+                    point = this.GetCrossPoint(this_line, temp_this_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInLines[this_line_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+                }
+            }
         }
 
 
@@ -468,102 +565,357 @@ namespace abaqus_helper.CADCtrl
         {
             if (point == null)
                 return;
+            CADPoint this_point = point.Copy();
+            if (this_point.m_id == 0)
+            {
+                PointNumber++;
+                this_point.m_id = PointNumber;
+            }
+            int this_point_id = this_point.m_id;
             //if (!AllColors.ContainsKey(color_id))
             //    color_id = 1;
-            PointNumber++;
-            if (this.AllPoints.ContainsKey(PointNumber))
+
+            if (this.AllPoints.ContainsKey(this_point_id))
             {
-                AllPoints[PointNumber] = point.Copy();
+                AllPoints[this_point_id] = this_point.Copy();
                 //AllLinesColor[LineNumber] = color_id;
             }
             else
             {
-                AllPoints.Add(PointNumber, point.Copy());
-                //AllLinesColor.Add(LineNumber, color_id);
-                //if (line.m_xs > line.m_xe)
-                //{
-                //    m_border.m_xs = m_border.m_xs < line.m_xe ? m_border.m_xs : line.m_xe;
-                //    m_border.m_xe = m_border.m_xe > line.m_xs ? m_border.m_xe : line.m_xs;
-                //}
-                //else
-                //{
-                //    m_border.m_xs = m_border.m_xs < line.m_xs ? m_border.m_xs : line.m_xs;
-                //    m_border.m_xe = m_border.m_xe > line.m_xe ? m_border.m_xe : line.m_xe;
-                //}
-                //if (line.m_ys > line.m_ye)
-                //{
-                //    m_border.m_ys = m_border.m_ys < line.m_ye ? m_border.m_ys : line.m_ye;
-                //    m_border.m_ye = m_border.m_ye > line.m_ys ? m_border.m_ye : line.m_ys;
-                //}
-                //else
-                //{
-                //    m_border.m_ys = m_border.m_ys < line.m_ys ? m_border.m_ys : line.m_ys;
-                //    m_border.m_ye = m_border.m_ye > line.m_ye ? m_border.m_ye : line.m_ye;
-                //}
+                AllPoints.Add(this_point_id, this_point.Copy());
             }
         }
 
 
         private void AddRect(CADRect rect, int color_id = 0)
         {
-            RectNumber++;
-            rect.m_id = RectNumber;
+            if (rect == null)
+                return;
+            CADRect this_rect = rect.Copy();
+            if (this_rect.m_id == 0)
+            {
+                RectNumber++;
+                this_rect.m_id = RectNumber;
+            }
             if (!AllColors.ContainsKey(color_id))
                 color_id = 1;
-            if (this.AllRects.ContainsKey(RectNumber))
+            int this_rect_id = this_rect.m_id;
+            if (this.AllRects.ContainsKey(this_rect_id))
             {
-                AllRects[RectNumber] = rect.Copy();
-                AllRectsColor[RectNumber] = color_id;
-                CADPoint point = new CADPoint(rect.m_xs, rect.m_ys);
+                AllRects[this_rect_id] = this_rect.Copy();
+                AllRectsColor[this_rect_id] = color_id;
+                CADPoint point = new CADPoint(this_rect.m_xs, this_rect.m_ys);
+                List<int> pointsItems = AllPointsInRects[this_rect_id];
+                for (int i = 0; i < pointsItems.Count; i++)
+                {
+                    if (AllPoints.ContainsKey(pointsItems[i]))
+                        AllPoints.Remove(pointsItems[i]);
+                }
+                pointsItems.Clear();
                 this.AddPoint(point);
-                point.m_x = rect.m_xs;
-                point.m_y = rect.m_ye;
+                pointsItems.Add(PointNumber);
+                point.m_x = this_rect.m_xs;
+                point.m_y = this_rect.m_ye;
                 this.AddPoint(point);
-                point.m_x = rect.m_xe;
-                point.m_y = rect.m_ys;
+                pointsItems.Add(PointNumber);
+                point.m_x = this_rect.m_xe;
+                point.m_y = this_rect.m_ys;
                 this.AddPoint(point);
-                point.m_x = rect.m_xe;
-                point.m_y = rect.m_ye;
+                pointsItems.Add(PointNumber);
+                point.m_x = this_rect.m_xe;
+                point.m_y = this_rect.m_ye;
                 this.AddPoint(point);
-                int[] pointsItems = { PointNumber - 3, PointNumber - 2,PointNumber - 1, PointNumber };
-                AllPointsInRects[RectNumber] = pointsItems;
+                pointsItems.Add(PointNumber);
+                //int[] pointsItems = { PointNumber - 3, PointNumber - 2,PointNumber - 1, PointNumber };
+                AllPointsInRects[this_rect_id] = pointsItems;
+                for (int i = 0; i < m_sel_rect_list.Count; i++)
+                {
+                    if (m_sel_rect_list[i].m_id == this_rect_id)
+                    {
+                        m_sel_rect_list[i] = AllRects[this_rect_id];
+                    }
+                }
             }
             else
             {
-                AllRects.Add(RectNumber, rect.Copy());
-                AllRectsColor.Add(RectNumber, color_id);
-                CADPoint point = new CADPoint(rect.m_xs, rect.m_ys);
+                AllRects.Add(this_rect_id, this_rect.Copy());
+                AllRectsColor.Add(this_rect_id, color_id);
+                CADPoint point = new CADPoint(this_rect.m_xs, this_rect.m_ys);
+                List<int> pointsItems = new List<int>();
                 this.AddPoint(point);
-                point.m_x = rect.m_xs;
-                point.m_y = rect.m_ye;
+                pointsItems.Add(PointNumber);
+                point.m_x = this_rect.m_xs;
+                point.m_y = this_rect.m_ye;
                 this.AddPoint(point);
-                point.m_x = rect.m_xe;
-                point.m_y = rect.m_ys;
+                pointsItems.Add(PointNumber);
+                point.m_x = this_rect.m_xe;
+                point.m_y = this_rect.m_ys;
                 this.AddPoint(point);
-                point.m_x = rect.m_xe;
-                point.m_y = rect.m_ye;
+                pointsItems.Add(PointNumber);
+                point.m_x = this_rect.m_xe;
+                point.m_y = this_rect.m_ye;
                 this.AddPoint(point);
-                int[] pointsItems = { PointNumber - 3, PointNumber - 2, PointNumber - 1, PointNumber };
-                AllPointsInRects.Add(RectNumber,pointsItems);
-                if (rect.m_xs > rect.m_xe)
+                pointsItems.Add(PointNumber);
+                //int[] pointsItems = { PointNumber - 3, PointNumber - 2, PointNumber - 1, PointNumber };
+                AllPointsInRects.Add(this_rect_id, pointsItems);
+                if (this_rect.m_xs > this_rect.m_xe)
                 {
-                    m_border.m_xs = m_border.m_xs < rect.m_xe ? m_border.m_xs : rect.m_xe;
-                    m_border.m_xe = m_border.m_xe > rect.m_xs ? m_border.m_xe : rect.m_xs;
+                    m_border.m_xs = m_border.m_xs < this_rect.m_xe ? m_border.m_xs : this_rect.m_xe;
+                    m_border.m_xe = m_border.m_xe > this_rect.m_xs ? m_border.m_xe : this_rect.m_xs;
                 }
                 else
                 {
-                    m_border.m_xs = m_border.m_xs < rect.m_xs ? m_border.m_xs : rect.m_xs;
-                    m_border.m_xe = m_border.m_xe > rect.m_xe ? m_border.m_xe : rect.m_xe;
+                    m_border.m_xs = m_border.m_xs < this_rect.m_xs ? m_border.m_xs : this_rect.m_xs;
+                    m_border.m_xe = m_border.m_xe > this_rect.m_xe ? m_border.m_xe : this_rect.m_xe;
                 }
-                if (rect.m_ys > rect.m_ye)
+                if (this_rect.m_ys > this_rect.m_ye)
                 {
-                    m_border.m_ys = m_border.m_ys < rect.m_ye ? m_border.m_ys : rect.m_ye;
-                    m_border.m_ye = m_border.m_ye > rect.m_ys ? m_border.m_ye : rect.m_ys;
+                    m_border.m_ys = m_border.m_ys < this_rect.m_ye ? m_border.m_ys : this_rect.m_ye;
+                    m_border.m_ye = m_border.m_ye > this_rect.m_ys ? m_border.m_ye : this_rect.m_ys;
                 }
                 else
                 {
-                    m_border.m_ys = m_border.m_ys < rect.m_ys ? m_border.m_ys : rect.m_ys;
-                    m_border.m_ye = m_border.m_ye > rect.m_ye ? m_border.m_ye : rect.m_ye;
+                    m_border.m_ys = m_border.m_ys < this_rect.m_ys ? m_border.m_ys : this_rect.m_ys;
+                    m_border.m_ye = m_border.m_ye > this_rect.m_ye ? m_border.m_ye : this_rect.m_ye;
+                }
+            }
+            if (AllLines.Count > 0)
+            {
+                foreach (int value in AllLines.Keys)
+                {
+
+                    CADLine cur_line = AllLines[value];
+                    CADLine this_rect_line = new CADLine();
+                    this_rect_line.m_xs = this_rect.m_xs;
+                    this_rect_line.m_ys = this_rect.m_ys;
+
+                    this_rect_line.m_xe = this_rect.m_xs;
+                    this_rect_line.m_ye = this_rect.m_ye;
+                    CADPoint point = this.GetCrossPoint(this_rect_line, cur_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInLines[value].Add(PointNumber);
+                    }
+
+                    this_rect_line.m_xs = this_rect.m_xe;
+                    this_rect_line.m_ys = this_rect.m_ye;
+                    point = this.GetCrossPoint(this_rect_line, cur_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInLines[value].Add(PointNumber);
+                    }
+                    this_rect_line.m_xe = this_rect.m_xe;
+                    this_rect_line.m_ye = this_rect.m_ys;
+                    point = this.GetCrossPoint(this_rect_line, cur_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInLines[value].Add(PointNumber);
+                    }
+                    this_rect_line.m_xs = this_rect.m_xs;
+                    this_rect_line.m_ys = this_rect.m_ys;
+                    point = this.GetCrossPoint(this_rect_line, cur_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInLines[value].Add(PointNumber);
+                    }
+                }
+            }
+            if (AllRects.Count > 0)
+            {
+                foreach (int value in AllRects.Keys)
+                {
+                    CADRect cur_this_rect = AllRects[value];
+                    CADLine this_rect_line = new CADLine();
+                    this_rect_line.m_xs = this_rect.m_xs;
+                    this_rect_line.m_ys = this_rect.m_ys;
+
+                    this_rect_line.m_xe = this_rect.m_xs;
+                    this_rect_line.m_ye = this_rect.m_ye;
+
+                    CADLine temp_line = new CADLine();
+                    temp_line.m_xs = cur_this_rect.m_xs;
+                    temp_line.m_ys = cur_this_rect.m_ys;
+
+                    temp_line.m_xe = cur_this_rect.m_xs;
+                    temp_line.m_ye = cur_this_rect.m_ye;
+                    CADPoint point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+
+                    temp_line.m_xs = cur_this_rect.m_xe;
+                    temp_line.m_ys = cur_this_rect.m_ye;
+                    point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+                    temp_line.m_xe = cur_this_rect.m_xe;
+                    temp_line.m_ye = cur_this_rect.m_ys;
+                    point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+                    temp_line.m_xs = cur_this_rect.m_xs;
+                    temp_line.m_ys = cur_this_rect.m_ys;
+                    point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+
+
+                    this_rect_line.m_xs = cur_this_rect.m_xe;
+                    this_rect_line.m_ys = cur_this_rect.m_ye;
+
+                    temp_line.m_xs = cur_this_rect.m_xs;
+                    temp_line.m_ys = cur_this_rect.m_ys;
+
+                    temp_line.m_xe = cur_this_rect.m_xs;
+                    temp_line.m_ye = cur_this_rect.m_ye;
+                    point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+
+                    temp_line.m_xs = cur_this_rect.m_xe;
+                    temp_line.m_ys = cur_this_rect.m_ye;
+                    point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+                    temp_line.m_xe = cur_this_rect.m_xe;
+                    temp_line.m_ye = cur_this_rect.m_ys;
+                    point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+                    temp_line.m_xs = cur_this_rect.m_xs;
+                    temp_line.m_ys = cur_this_rect.m_ys;
+                    point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+
+
+                    this_rect_line.m_xe = cur_this_rect.m_xe;
+                    this_rect_line.m_ye = cur_this_rect.m_ys;
+
+                    temp_line.m_xs = cur_this_rect.m_xs;
+                    temp_line.m_ys = cur_this_rect.m_ys;
+
+                    temp_line.m_xe = cur_this_rect.m_xs;
+                    temp_line.m_ye = cur_this_rect.m_ye;
+                    point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+
+                    temp_line.m_xs = cur_this_rect.m_xe;
+                    temp_line.m_ys = cur_this_rect.m_ye;
+                    point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+                    temp_line.m_xe = cur_this_rect.m_xe;
+                    temp_line.m_ye = cur_this_rect.m_ys;
+                    point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+                    temp_line.m_xs = cur_this_rect.m_xs;
+                    temp_line.m_ys = cur_this_rect.m_ys;
+                    point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+
+                    this_rect_line.m_xs = cur_this_rect.m_xs;
+                    this_rect_line.m_ys = cur_this_rect.m_ys;
+
+                    temp_line.m_xs = cur_this_rect.m_xs;
+                    temp_line.m_ys = cur_this_rect.m_ys;
+
+                    temp_line.m_xe = cur_this_rect.m_xs;
+                    temp_line.m_ye = cur_this_rect.m_ye;
+                    point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+
+                    temp_line.m_xs = cur_this_rect.m_xe;
+                    temp_line.m_ys = cur_this_rect.m_ye;
+                    point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+                    temp_line.m_xe = cur_this_rect.m_xe;
+                    temp_line.m_ye = cur_this_rect.m_ys;
+                    point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+                    temp_line.m_xs = cur_this_rect.m_xs;
+                    temp_line.m_ys = cur_this_rect.m_ys;
+                    point = this.GetCrossPoint(this_rect_line, temp_line);
+                    if (point != null)
+                    {
+                        this.AddPoint(point);
+                        AllPointsInRects[this_rect_id].Add(PointNumber);
+                        AllPointsInRects[value].Add(PointNumber);
+                    }
+
                 }
             }
         }
@@ -587,7 +939,10 @@ namespace abaqus_helper.CADCtrl
                 this.SelPoints.Add(point_id, this.AllPoints[point_id]);
             }
             else
+            {
                 this.SelPoints.Remove(point_id);
+                m_cur_sel_point = new CADPoint();
+            }
         }
 
 
@@ -596,9 +951,33 @@ namespace abaqus_helper.CADCtrl
             if (!this.SelRects.ContainsKey(rect_id))
             {
                 this.SelRects.Add(rect_id, this.AllRects[rect_id]);
+                bool flag = false;
+                for (int i = 0; i < m_sel_rect_list.Count;i++ )
+                {
+                    if (m_sel_rect_list[i].m_id == rect_id)
+                    {
+                        m_sel_rect_list[i] = this.AllRects[rect_id];
+                        flag = true;
+                        break;
+                    }
+
+                }
+                if (!flag)
+                    m_sel_rect_list.Add(this.AllRects[rect_id]);
             }
             else
+            {
                 this.SelRects.Remove(rect_id);
+                for (int i = 0; i < m_sel_rect_list.Count; i++)
+                {
+                    if (m_sel_rect_list[i].m_id == rect_id)
+                    {
+                        m_sel_rect_list.RemoveAt(i);
+                        break;
+                    }
+                }
+                
+            }
         }
 
 
@@ -769,37 +1148,86 @@ namespace abaqus_helper.CADCtrl
         {
             if (this.AllLines.ContainsKey(line_id))
             {
-                foreach (int value in AllPointsInLines[line_id])
+                if (AllPointsInLines[line_id].Count > 0)
                 {
-                    AllPoints.Remove(value);
-                    if (SelPoints.ContainsKey(value))
-                        SelPoints.Remove(value);
+                    foreach (int value in AllPointsInLines[line_id])
+                    {
+                        if (AllPoints.ContainsKey(value))
+                            AllPoints.Remove(value);
+                        if (SelPoints.ContainsKey(value))
+                            SelPoints.Remove(value);
+                    }
                 }
+                
                 AllPointsInLines.Remove(line_id);
                 AllLines.Remove(line_id);
                 AllLinesColor.Remove(line_id);
                 
+            }
+            if (AllPointsInLines.Count > 0)
+            {
+                foreach (int value in AllPointsInLines.Keys)
+                {
+
+                    for (int i = 0; i < AllPointsInLines[value].Count;i++ )
+                    {
+                        if (!AllPoints.ContainsKey(AllPointsInLines[value][i]))
+                            AllPointsInLines[value].Remove(i);
+                    }
+                    
+                }
+            }
+            if (AllPointsInRects.Count > 0)
+            {
+                foreach (int value in AllPointsInRects.Keys)
+                {
+
+                    for (int i = 0; i < AllPointsInRects[value].Count;i++ )
+                    {
+                        if (!AllPoints.ContainsKey(AllPointsInRects[value][i]))
+                            AllPointsInRects[value].RemoveAt(i);
+                    }
+                    
+                }
             }
             this.UpdateBorder();
         }
 
         private void DelAllLines()
         {
-            foreach (int line_id in AllLines.Keys)
+            if (AllLines.Count > 0)
             {
-                foreach (int value in AllPointsInLines[line_id])
+                foreach (int line_id in AllLines.Keys)
                 {
-                    AllPoints.Remove(value);
-                    if (SelPoints.ContainsKey(value))
-                        SelPoints.Remove(value);
+                    if (AllPointsInLines[line_id].Count > 0)
+                    {
+                        foreach (int value in AllPointsInLines[line_id])
+                        {
+                            if (AllPoints.ContainsKey(value))
+                                AllPoints.Remove(value);
+                            if (SelPoints.ContainsKey(value))
+                                SelPoints.Remove(value);
+                        }
+                    }
                 }
             }
             AllPointsInLines.Clear();
             AllLines.Clear();
             AllLinesColor.Clear();
             SelLines.Clear();
-            
             LineNumber = 0;
+            if (AllPointsInRects.Count > 0)
+            {
+                foreach (int value in AllPointsInRects.Keys)
+                {
+                    for (int i = 0; i < AllPointsInRects[value].Count;i++ )
+                    {
+                        if (!AllPoints.ContainsKey(AllPointsInRects[value][i]))
+                            AllPointsInRects[value].RemoveAt(i);
+                    }
+                }
+            }
+            
             this.UpdateBorder();
         }
 
@@ -807,88 +1235,139 @@ namespace abaqus_helper.CADCtrl
         {
             if (this.AllRects.ContainsKey(rect_id))
             {
-                foreach (int value in AllPointsInRects[rect_id])
+                if (AllPointsInRects[rect_id].Count > 0)
                 {
-                    AllPoints.Remove(value);
-                    if (SelPoints.ContainsKey(value))
-                        SelPoints.Remove(value);
+                    foreach (int value in AllPointsInRects[rect_id])
+                    {
+                        if (AllPoints.ContainsKey(value))
+                            AllPoints.Remove(value);
+                        if (SelPoints.ContainsKey(value))
+                            SelPoints.Remove(value);
+                    }
                 }
                 AllPointsInRects.Remove(rect_id);
                 AllRects.Remove(rect_id);
                 AllRectsColor.Remove(rect_id);
 
             }
+            if (AllPointsInLines.Count > 0)
+            {
+                foreach (int value in AllPointsInLines.Keys)
+                {
+                    for (int i = 0; i < AllPointsInLines[value].Count;i++ )
+                    {
+                        if (!AllPoints.ContainsKey(AllPointsInLines[value][i]))
+                            AllPointsInLines[value].RemoveAt(i);
+                    }
+                }
+            }
+            if (AllPointsInRects.Count > 0)
+            {
+                foreach (int value in AllPointsInRects.Keys)
+                {
+                    for (int i = 0; i < AllPointsInRects[value].Count;i++ )
+                    {
+                        if (!AllPoints.ContainsKey(AllPointsInRects[value][i]))
+                            AllPointsInRects[value].RemoveAt(i);
+                    }
+                }
+            }
             this.UpdateBorder();
         }
 
         private void DelAllRects()
         {
-            foreach (int rect_id in AllRects.Keys)
+            if (AllRects.Count > 0)
             {
-                foreach (int value in AllPointsInRects[rect_id])
+                foreach (int rect_id in AllRects.Keys)
                 {
-                    AllPoints.Remove(value);
-                    if (SelPoints.ContainsKey(value))
-                        SelPoints.Remove(value);
+                    if (AllPointsInRects[rect_id].Count > 0)
+                    {
+                        foreach (int value in AllPointsInRects[rect_id])
+                        {
+                            if (AllPoints.ContainsKey(value))
+                                AllPoints.Remove(value);
+                            if (SelPoints.ContainsKey(value))
+                                SelPoints.Remove(value);
+                        }
+                    }
                 }
             }
             AllPointsInRects.Clear();
             AllRects.Clear();
             AllRectsColor.Clear();
-
             SelRects.Clear();
             RectNumber = 0;
+            if (AllPointsInLines.Count > 0)
+            {
+                foreach (int value in AllPointsInLines.Keys)
+                {
+                    if (AllPointsInLines[value].Count > 0)
+                    {
+                        for (int i = 0; i < AllPointsInLines[value].Count;i++ )
+                        {
+                            if (!AllPoints.ContainsKey(AllPointsInLines[value][i]))
+                                AllPointsInLines[value].RemoveAt(i);
+                        }
+                    }
+                }
+            }
             this.UpdateBorder();
         }
 
         private void UpdateBorder()
         {
             m_border = new CADRect(0, 0, 0, 0);
-            foreach (CADRect rect in this.AllRects.Values)
+            if (AllRects.Count > 0)
             {
-                if (rect.m_xs > rect.m_xe)
+                foreach (CADRect rect in this.AllRects.Values)
                 {
-                    m_border.m_xs = m_border.m_xs < rect.m_xe ? m_border.m_xs : rect.m_xe;
-                    m_border.m_xe = m_border.m_xe > rect.m_xs ? m_border.m_xe : rect.m_xs;
-                }
-                else
-                {
-                    m_border.m_xs = m_border.m_xs < rect.m_xs ? m_border.m_xs : rect.m_xs;
-                    m_border.m_xe = m_border.m_xe > rect.m_xe ? m_border.m_xe : rect.m_xe;
-                }
-                if (rect.m_ys > rect.m_ye)
-                {
-                    m_border.m_ys = m_border.m_ys < rect.m_ye ? m_border.m_ys : rect.m_ye;
-                    m_border.m_ye = m_border.m_ye > rect.m_ys ? m_border.m_ye : rect.m_ys;
-                }
-                else
-                {
-                    m_border.m_ys = m_border.m_ys < rect.m_ys ? m_border.m_ys : rect.m_ys;
-                    m_border.m_ye = m_border.m_ye > rect.m_ye ? m_border.m_ye : rect.m_ye;
+                    if (rect.m_xs > rect.m_xe)
+                    {
+                        m_border.m_xs = m_border.m_xs < rect.m_xe ? m_border.m_xs : rect.m_xe;
+                        m_border.m_xe = m_border.m_xe > rect.m_xs ? m_border.m_xe : rect.m_xs;
+                    }
+                    else
+                    {
+                        m_border.m_xs = m_border.m_xs < rect.m_xs ? m_border.m_xs : rect.m_xs;
+                        m_border.m_xe = m_border.m_xe > rect.m_xe ? m_border.m_xe : rect.m_xe;
+                    }
+                    if (rect.m_ys > rect.m_ye)
+                    {
+                        m_border.m_ys = m_border.m_ys < rect.m_ye ? m_border.m_ys : rect.m_ye;
+                        m_border.m_ye = m_border.m_ye > rect.m_ys ? m_border.m_ye : rect.m_ys;
+                    }
+                    else
+                    {
+                        m_border.m_ys = m_border.m_ys < rect.m_ys ? m_border.m_ys : rect.m_ys;
+                        m_border.m_ye = m_border.m_ye > rect.m_ye ? m_border.m_ye : rect.m_ye;
+                    }
                 }
             }
-
-            foreach (CADLine line in this.AllLines.Values)
+            if (AllLines.Count > 0)
             {
-                if (line.m_xs > line.m_xe)
+                foreach (CADLine line in this.AllLines.Values)
                 {
-                    m_border.m_xs = m_border.m_xs < line.m_xe ? m_border.m_xs : line.m_xe;
-                    m_border.m_xe = m_border.m_xe > line.m_xs ? m_border.m_xe : line.m_xs;
-                }
-                else
-                {
-                    m_border.m_xs = m_border.m_xs < line.m_xs ? m_border.m_xs : line.m_xs;
-                    m_border.m_xe = m_border.m_xe > line.m_xe ? m_border.m_xe : line.m_xe;
-                }
-                if (line.m_ys > line.m_ye)
-                {
-                    m_border.m_ys = m_border.m_ys < line.m_ye ? m_border.m_ys : line.m_ye;
-                    m_border.m_ye = m_border.m_ye > line.m_ys ? m_border.m_ye : line.m_ys;
-                }
-                else
-                {
-                    m_border.m_ys = m_border.m_ys < line.m_ys ? m_border.m_ys : line.m_ys;
-                    m_border.m_ye = m_border.m_ye > line.m_ye ? m_border.m_ye : line.m_ye;
+                    if (line.m_xs > line.m_xe)
+                    {
+                        m_border.m_xs = m_border.m_xs < line.m_xe ? m_border.m_xs : line.m_xe;
+                        m_border.m_xe = m_border.m_xe > line.m_xs ? m_border.m_xe : line.m_xs;
+                    }
+                    else
+                    {
+                        m_border.m_xs = m_border.m_xs < line.m_xs ? m_border.m_xs : line.m_xs;
+                        m_border.m_xe = m_border.m_xe > line.m_xe ? m_border.m_xe : line.m_xe;
+                    }
+                    if (line.m_ys > line.m_ye)
+                    {
+                        m_border.m_ys = m_border.m_ys < line.m_ye ? m_border.m_ys : line.m_ye;
+                        m_border.m_ye = m_border.m_ye > line.m_ys ? m_border.m_ye : line.m_ys;
+                    }
+                    else
+                    {
+                        m_border.m_ys = m_border.m_ys < line.m_ys ? m_border.m_ys : line.m_ys;
+                        m_border.m_ye = m_border.m_ye > line.m_ye ? m_border.m_ye : line.m_ye;
+                    }
                 }
             }
         }
@@ -1014,10 +1493,21 @@ namespace abaqus_helper.CADCtrl
             this.DelAllLines();
         }
 
+        public void UserDelLine(int line_id)
+        {
+            this.DelLine(line_id);
+        }
+
         public void UserDelAllRects()
         {
             this.DelAllRects();
         }
+
+        public void UserDelRect(int rect_id)
+        {
+            this.DelRect(rect_id);
+        }
+
 
         public void UserDrawRect(Point p1, Point p2, int color_id = 0)
         {
@@ -1037,6 +1527,11 @@ namespace abaqus_helper.CADCtrl
         public void UserSelLine(int id)
         {
             this.SelLine(id);
+        }
+
+        public void UserSelRect(int id)
+        {
+            this.SelRect(id);
         }
 
         public int[] UserGetSelLines()
@@ -1110,18 +1605,24 @@ namespace abaqus_helper.CADCtrl
 
     public class CADLine
     {
-        public int m_id;
-        public float m_xs = 0.0f;
-        public float m_ys = 0.0f;
-        public float m_xe = 0.0f;
-        public float m_ye = 0.0f;
+        public int m_id { get; set; }
+        public float m_xs { get; set; }
+        public float m_ys { get; set; }
+        public float m_xe { get; set; }
+        public float m_ye { get; set; }
 
         public CADLine()
         {
+            m_id = 0;
+            m_xs = 0.0f;
+            m_ys = 0.0f;
+            m_xe = 0.0f;
+            m_ye = 0.0f;
         }
 
         public CADLine(Point p1, Point p2)
         {
+            m_id = 0;
             m_xs = (float)p1.X;
             m_ys = (float)p1.Y;
             m_xe = (float)p2.X;
@@ -1130,6 +1631,7 @@ namespace abaqus_helper.CADCtrl
 
         public CADLine(double xs, double ys, double xe, double ye)
         {
+            m_id = 0;
             m_xs = (float)xs;
             m_ys = (float)ys;
             m_xe = (float)xe;
@@ -1141,23 +1643,41 @@ namespace abaqus_helper.CADCtrl
             result.m_id = m_id;
             return result;
         }
+
+        public static implicit operator CADRect(CADLine value)//implicit隐式转换，explicit显式转换
+        {
+            checked
+            {
+                if (value == null)
+                    return null;
+                CADRect result = new CADRect(value.m_xs, value.m_ys, value.m_xe, value.m_ye);
+                result.m_id = value.m_id;
+                return result;
+            }
+        }
     }
 
     public class CADRect
     {
-        public int m_id;
-        public float m_xs = 0.0f;
-        public float m_ys = 0.0f;
-        public float m_xe = 0.0f;
-        public float m_ye = 0.0f;
+        public int m_id {get;set;}
+        public float m_xs { get; set; }
+        public float m_ys { get; set; }
+        public float m_xe { get; set; }
+        public float m_ye { get; set; }
 
 
         public CADRect()
         {
+            m_id = 0;
+            m_xs = 0.0f;
+            m_ys = 0.0f;
+            m_xe = 0.0f;
+            m_ye = 0.0f;
         }
 
         public CADRect(Point p1, Point p2)
         {
+            m_id = 0;
             m_xs = (float)p1.X;
             m_ys = (float)p1.Y;
             m_xe = (float)p2.X;
@@ -1166,6 +1686,7 @@ namespace abaqus_helper.CADCtrl
 
         public CADRect(double xs, double ys, double xe, double ye)
         {
+            m_id = 0;
             m_xs = (float)xs;
             m_ys = (float)ys;
             m_xe = (float)xe;
@@ -1179,12 +1700,24 @@ namespace abaqus_helper.CADCtrl
             return result;
         }
 
+        public static implicit operator CADLine(CADRect value)//implicit隐式转换，explicit显式转换
+        {
+            checked
+            {
+                if (value == null)
+                    return null;
+                CADLine result = new CADLine(value.m_xs,value.m_ys,value.m_xe,value.m_ye);
+                result.m_id = value.m_id;
+                return result;
+            }
+        }
+
     }
 
 
     public class CADPoint
     {
-        public int m_id;
+        public int m_id = 0;
         public float m_x = 0.0f;
         public float m_y = 0.0f;
 
