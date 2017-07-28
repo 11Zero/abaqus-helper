@@ -51,6 +51,10 @@ namespace abaqus_helper.CADCtrl
         Point m_currentpos = new Point(0, 0);
         CADPoint m_cur_sel_point = new CADPoint(0, 0);
         public ObservableCollection<CADLine> m_sel_rect_list = new ObservableCollection<CADLine>();
+        public bool key_down_esc = false;
+        public bool key_down_copy = false;
+        public bool key_down_move = false;
+        public bool key_down_del = false;
         public CADCtrl()
         {
             InitializeComponent();
@@ -198,8 +202,70 @@ namespace abaqus_helper.CADCtrl
 
                 if (id_sel_point > 0)
                 {
+
                     if (AllPoints.ContainsKey(id_sel_point))
+                    {
+                        if (key_down_move || key_down_copy)
+                        {
+                            Vector move = new Vector(AllPoints[id_sel_point].m_x - m_cur_sel_point.m_x, AllPoints[id_sel_point].m_y - m_cur_sel_point.m_y);
+                            if (SelRects.Count > 0)
+                            {
+                                if (key_down_move)
+                                {
+                                    foreach (int value in SelRects.Keys)
+                                    {
+                                        SelRects[value].m_xs = AllRects[value].m_xs + (float)move.X;
+                                        SelRects[value].m_ys = AllRects[value].m_ys + (float)move.Y;
+                                        SelRects[value].m_xe = AllRects[value].m_xe + (float)move.X;
+                                        SelRects[value].m_ye = AllRects[value].m_ye + (float)move.Y;
+                                        //if (!key_down_copy)
+                                        //    this.AddRect(SelRects[value]);
+
+                                        this.AddRect(SelRects[value]);
+                                    }
+                                }
+                                if (key_down_copy)
+                                {
+                                    CADRect new_rect = new CADRect();
+                                    int[] keys = SelRects.Keys.ToArray();
+                                    SelRects.Clear();
+                                    foreach (int value in keys)
+                                    {
+                                        new_rect.m_xs = AllRects[value].m_xs + (float)move.X;
+                                        new_rect.m_ys = AllRects[value].m_ys + (float)move.Y;
+                                        new_rect.m_xe = AllRects[value].m_xe + (float)move.X;
+                                        new_rect.m_ye = AllRects[value].m_ye + (float)move.Y;
+                                        //if (!key_down_copy)
+                                        //    this.AddRect(SelRects[value]);
+                                        RectNumber++;
+                                        new_rect.m_id = RectNumber;
+                                        SelRects.Add(RectNumber,new_rect);
+                                        this.AddRect(new_rect);
+                                    }
+                                    
+                                        
+                                }
+                            }
+                        }
+
+                        //if (key_down_copy)
+                        //{
+                        //    Vector move = new Vector(AllPoints[id_sel_point].m_x - m_cur_sel_point.m_x, AllPoints[id_sel_point].m_y - m_cur_sel_point.m_y);
+                        //    foreach (int value in SelRects.Keys)
+                        //    {
+                        //        SelRects[value].m_xs = AllRects[value].m_xs + (float)move.X;
+                        //        SelRects[value].m_ys = AllRects[value].m_ys + (float)move.Y;
+                        //        SelRects[value].m_xe = AllRects[value].m_xe + (float)move.X;
+                        //        SelRects[value].m_ye = AllRects[value].m_ye + (float)move.Y;
+                        //        RectNumber++;
+                        //        SelRects[value].m_id = RectNumber;
+                        //        this.AddRect(SelRects[value]);
+                        //    }
+                        //}
+
                         m_cur_sel_point = AllPoints[id_sel_point].Copy();
+                        key_down_move = false;
+                    }
 
                     if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
                     {
@@ -324,7 +390,23 @@ namespace abaqus_helper.CADCtrl
                 MidMouseDownStart = MidMouseDownEnd;
             }
 
-
+            if (key_down_move || key_down_copy)
+            {
+                if (this.SelRects.Count > 0)
+                {
+                    Vector move = new Vector(m_currentpos.X / m_scale / m_pixaxis - m_cur_sel_point.m_x, m_currentpos.Y / m_scale / m_pixaxis - m_cur_sel_point.m_y );
+                    if (SelRects.Count > 0)
+                    {
+                        foreach (int value in SelRects.Keys)
+                        {
+                            SelRects[value].m_xs = AllRects[value].m_xs + (float)move.X;
+                            SelRects[value].m_ys = AllRects[value].m_ys + (float)move.Y;
+                            SelRects[value].m_xe = AllRects[value].m_xe + (float)move.X;
+                            SelRects[value].m_ye = AllRects[value].m_ye + (float)move.Y;
+                        }
+                    }
+                }
+            }
             m_currentpos.Y = this.Height / 2 - e.GetPosition(e.Source as FrameworkElement).Y - m_center_offset.Y;
             m_currentpos.X = -this.Width / 2 + e.GetPosition(e.Source as FrameworkElement).X - m_center_offset.X;
             //m_currentpos = (Point)(e.GetPosition(e.Source as FrameworkElement) - m_center_offset);
@@ -353,8 +435,6 @@ namespace abaqus_helper.CADCtrl
                 m_center_offset.X = m_center_offset.X + vDistance.X;
                 m_center_offset.Y = m_center_offset.Y + vDistance.Y;
             }
-
-
         }
 
 
@@ -950,7 +1030,7 @@ namespace abaqus_helper.CADCtrl
         {
             if (!this.SelRects.ContainsKey(rect_id))
             {
-                this.SelRects.Add(rect_id, this.AllRects[rect_id]);
+                this.SelRects.Add(rect_id, this.AllRects[rect_id].Copy());
                 bool flag = false;
                 for (int i = 0; i < m_sel_rect_list.Count;i++ )
                 {
@@ -1080,7 +1160,7 @@ namespace abaqus_helper.CADCtrl
         {
             if (!AllRects.ContainsKey(rect_id))
                 return;
-            CADRect rect = AllRects[rect_id];
+            CADRect rect = SelRects[rect_id];//AllRects[rect_id];
 
             m_openGLCtrl.LineWidth(5);
             m_openGLCtrl.Begin(SharpGL.Enumerations.BeginMode.Lines);
@@ -1162,6 +1242,7 @@ namespace abaqus_helper.CADCtrl
                 AllPointsInLines.Remove(line_id);
                 AllLines.Remove(line_id);
                 AllLinesColor.Remove(line_id);
+                
                 
             }
             if (AllPointsInLines.Count > 0)
@@ -1248,6 +1329,14 @@ namespace abaqus_helper.CADCtrl
                 AllPointsInRects.Remove(rect_id);
                 AllRects.Remove(rect_id);
                 AllRectsColor.Remove(rect_id);
+                for (int i = 0; i < m_sel_rect_list.Count; i++)
+                {
+                    if (m_sel_rect_list[i].m_id == rect_id)
+                    {
+                        m_sel_rect_list.RemoveAt(i);
+                        break;
+                    }
+                }
 
             }
             if (AllPointsInLines.Count > 0)
@@ -1297,6 +1386,7 @@ namespace abaqus_helper.CADCtrl
             AllRects.Clear();
             AllRectsColor.Clear();
             SelRects.Clear();
+            m_sel_rect_list.Clear();
             RectNumber = 0;
             if (AllPointsInLines.Count > 0)
             {
@@ -1585,6 +1675,76 @@ namespace abaqus_helper.CADCtrl
             m_center_offset.X = -(m_border.m_xe - m_border.m_xs) / 2 * m_pixaxis * m_scale;
             m_center_offset.Y = -(m_border.m_ye - m_border.m_ys) / 2 * m_pixaxis * m_scale;
         }
+
+        public void RectToESC()
+        {
+            if (!key_down_move && !key_down_copy)
+            {
+                SelRects.Clear();
+                SelPoints.Clear();
+                SelLines.Clear();
+            }
+
+            if (key_down_copy)
+            {
+                if (SelRects.Count > 0)
+                {
+                    int[] keys = SelRects.Keys.ToArray();
+                    foreach (int value in keys)
+                    {
+                        SelRects[value] = AllRects[value].Copy();
+                    }
+                }
+                key_down_copy = false;
+            }
+            
+
+
+            if (key_down_move)
+            {
+                if (SelRects.Count > 0)
+                {
+                    int[] keys = SelRects.Keys.ToArray();
+                    foreach (int value in keys)
+                    {
+                        SelRects[value] = AllRects[value].Copy();
+                    }
+                }
+                key_down_move = false;
+            }
+            
+
+
+            key_down_del = false;
+        }
+
+        private void UserControl_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                key_down_esc = true;
+                return;
+            }
+            if (e.Key == Key.C)
+            {
+                key_down_copy = true;
+                return;
+            }
+            if (e.Key == Key.M)
+            {
+                key_down_move = true;
+                return;
+            }
+            if (e.Key == Key.Delete)
+            {
+                key_down_del = true;
+                return;
+            }
+            
+        }
+
+        
+        
         //private void openGLCtrl_KeyDown(object sender, KeyEventArgs e)
         //{
 

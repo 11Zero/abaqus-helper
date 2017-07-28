@@ -1,7 +1,7 @@
 ﻿<Window x:Class="abaqus_helper.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="abaqus建模助手 - 多层框架结构" Height="654" Width="1200" Loaded="Window_Loaded" xmlns:my="clr-namespace:abaqus_helper.CADCtrl">
+        Title="abaqus建模助手 - 多层框架结构" Height="654" Width="1200" Loaded="Window_Loaded" xmlns:my="clr-namespace:abaqus_helper.CADCtrl" PreviewKeyDown="Window_PreviewKeyDown">
     <Window.Resources>
         <Style x:Key="contentCenterStyle" 
                TargetType="{x:Type TextBlock}">

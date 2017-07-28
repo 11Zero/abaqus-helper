@@ -34,7 +34,10 @@ namespace abaqus_helper
         public CADRect m_edit_cell = null;
         public int m_cur_cell_val = 0;
         public string m_cur_col_name = "";
-        private bool esc = false;
+        private bool key_down_esc = false;
+        private bool key_down_copy = false;
+        private bool key_down_move = false;
+        private bool key_down_del = false;
         public MainWindow()
         {
             InitializeComponent();
@@ -407,7 +410,7 @@ namespace abaqus_helper
         {
 
             //bool temp = e.Cancel;
-            if (!esc && m_edit_cell != null)
+            if (!key_down_esc && m_edit_cell != null)
             {
                 int cell_val = m_cur_cell_val;
 
@@ -444,12 +447,13 @@ namespace abaqus_helper
             m_edit_cell = null;
             m_cur_col_name = "";
             m_cur_cell_val = 0;
-            esc = false;
+            key_down_esc = false;
         }
 
         private void dataGrid_sel_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
         {
-            esc = false;
+            key_down_esc = false;
+            //CADctrl.key_down_esc = false;
             m_cur_cell_val = int.Parse((e.Column.GetCellContent(e.Row) as TextBlock).Text);
             if (m_cur_cell_val == 0)
                 m_cur_cell_val = 68;
@@ -471,8 +475,47 @@ namespace abaqus_helper
         {
             if (e.Key == Key.Escape)
             {
-                esc = true;
+                key_down_esc = true;
             }
+        }
+
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                key_down_esc = true;
+                CADctrl.RectToESC();
+            }
+            if (e.Key == Key.C)
+            {
+                
+                //key_down_copy = true;
+                CADctrl.key_down_copy = true;
+                CADctrl.key_down_move = false;
+                CADctrl.key_down_del = false;
+                return;
+            }
+            if (e.Key == Key.M)
+            {
+
+                CADctrl.key_down_copy = false;
+                CADctrl.key_down_move = true;
+                CADctrl.key_down_del = false;
+                return;
+            }
+            if (e.Key == Key.Delete)
+            {
+                CADctrl.key_down_copy = false;
+                CADctrl.key_down_move = false;
+                CADctrl.key_down_del = true;
+                int[] sel_keys = CADctrl.UserGetSelRects();
+                foreach (int key in sel_keys)
+                {
+                    CADctrl.UserDelRect(key);
+                }
+                return;
+            }
+
         }
     }
 }
