@@ -50,7 +50,8 @@ namespace abaqus_helper.CADCtrl
         Point MidMouseDownEnd = new Point(0, 0);
         Point m_currentpos = new Point(0, 0);
         CADPoint m_cur_sel_point = new CADPoint(0, 0);
-        public ObservableCollection<CADLine> m_sel_rect_list = new ObservableCollection<CADLine>();
+        public ObservableCollection<CADRect> m_sel_rect_list = new ObservableCollection<CADRect>();
+        public ObservableCollection<CADPoint> m_sel_point_list = new ObservableCollection<CADPoint>();
         public bool key_down_esc = false;
         public bool key_down_copy = false;
         public bool key_down_move = false;
@@ -75,6 +76,7 @@ namespace abaqus_helper.CADCtrl
             RectNumber = 0;
             PointNumber = 1;
             AllPoints[PointNumber] = new CADPoint();
+            AllPoints[PointNumber].m_id = PointNumber;
             m_pixaxis = m_pixaxis * this.Height;//(this.Width < this.Height ? this.Width : this.Height);
             AllColors.Add(1, new CADRGB(1, 1, 1));
             AllColors.Add(2, new CADRGB(1, 0, 0));
@@ -239,11 +241,11 @@ namespace abaqus_helper.CADCtrl
                                         //    this.AddRect(SelRects[value]);
                                         RectNumber++;
                                         new_rect.m_id = RectNumber;
-                                        SelRects.Add(RectNumber,new_rect);
+                                        SelRects.Add(RectNumber, new_rect);
                                         this.AddRect(new_rect);
                                     }
-                                    
-                                        
+
+
                                 }
                             }
                         }
@@ -274,8 +276,11 @@ namespace abaqus_helper.CADCtrl
                     }
                     else
                     {
-                        if (!SelLines.ContainsKey(id_sel_point))
+                        if (!SelPoints.ContainsKey(id_sel_point))
+                        {
                             SelPoints.Clear();
+                            m_sel_point_list.Clear();
+                        }
                         this.SelPoint(id_sel_point);
                         return;
                     }
@@ -287,6 +292,7 @@ namespace abaqus_helper.CADCtrl
                     {
                         m_cur_sel_point = new CADPoint();
                         this.SelPoints.Clear();
+                        m_sel_point_list.Clear();
                     }
                 }
 
@@ -394,7 +400,7 @@ namespace abaqus_helper.CADCtrl
             {
                 if (this.SelRects.Count > 0)
                 {
-                    Vector move = new Vector(m_currentpos.X / m_scale / m_pixaxis - m_cur_sel_point.m_x, m_currentpos.Y / m_scale / m_pixaxis - m_cur_sel_point.m_y );
+                    Vector move = new Vector(m_currentpos.X / m_scale / m_pixaxis - m_cur_sel_point.m_x, m_currentpos.Y / m_scale / m_pixaxis - m_cur_sel_point.m_y);
                     if (SelRects.Count > 0)
                     {
                         foreach (int value in SelRects.Keys)
@@ -542,13 +548,13 @@ namespace abaqus_helper.CADCtrl
                 point.m_y = this_line.m_ye;
                 this.AddPoint(point);
                 pointsItems.Add(PointNumber);
-                AllPointsInLines[this_line_id] =  pointsItems;
+                AllPointsInLines[this_line_id] = pointsItems;
             }
             else
             {
                 AllLines.Add(this_line_id, this_line.Copy());
                 AllLinesColor.Add(this_line_id, color_id);
-                CADPoint point = new CADPoint(this_line.m_xs,this_line.m_ys);
+                CADPoint point = new CADPoint(this_line.m_xs, this_line.m_ys);
                 List<int> pointsItems = new List<int>();
                 this.AddPoint(point);
                 pointsItems.Add(PointNumber);
@@ -1017,10 +1023,32 @@ namespace abaqus_helper.CADCtrl
             if (!this.SelPoints.ContainsKey(point_id))
             {
                 this.SelPoints.Add(point_id, this.AllPoints[point_id]);
+                //m_sel_point_list.Add(this.AllPoints[point_id]);
+                bool flag = false;
+                for (int i = 0; i < m_sel_point_list.Count; i++)
+                {
+                    if (m_sel_point_list[i].m_id == point_id)
+                    {
+                        m_sel_point_list[i] = this.AllPoints[point_id];
+                        flag = true;
+                        break;
+                    }
+
+                }
+                if (!flag)
+                    m_sel_point_list.Add(this.AllPoints[point_id]);
             }
             else
             {
                 this.SelPoints.Remove(point_id);
+                for (int i = 0; i < m_sel_point_list.Count; i++)
+                {
+                    if (m_sel_point_list[i].m_id == point_id)
+                    {
+                        m_sel_point_list.RemoveAt(i);
+                        break;
+                    }
+                }
                 m_cur_sel_point = new CADPoint();
             }
         }
@@ -1032,7 +1060,7 @@ namespace abaqus_helper.CADCtrl
             {
                 this.SelRects.Add(rect_id, this.AllRects[rect_id].Copy());
                 bool flag = false;
-                for (int i = 0; i < m_sel_rect_list.Count;i++ )
+                for (int i = 0; i < m_sel_rect_list.Count; i++)
                 {
                     if (m_sel_rect_list[i].m_id == rect_id)
                     {
@@ -1040,7 +1068,6 @@ namespace abaqus_helper.CADCtrl
                         flag = true;
                         break;
                     }
-
                 }
                 if (!flag)
                     m_sel_rect_list.Add(this.AllRects[rect_id]);
@@ -1056,7 +1083,7 @@ namespace abaqus_helper.CADCtrl
                         break;
                     }
                 }
-                
+
             }
         }
 
@@ -1080,7 +1107,7 @@ namespace abaqus_helper.CADCtrl
             //m_openGLCtrl.LineWidth(1);
             m_openGLCtrl.PointSize(3.0f);
             m_openGLCtrl.Begin(SharpGL.Enumerations.BeginMode.Points);
-            
+
             if (color == null)
                 m_openGLCtrl.Color(1.0f, 1.0f, 1.0f);
             else
@@ -1235,27 +1262,37 @@ namespace abaqus_helper.CADCtrl
                         if (AllPoints.ContainsKey(value))
                             AllPoints.Remove(value);
                         if (SelPoints.ContainsKey(value))
+                        {
                             SelPoints.Remove(value);
+                            for (int i = 0; i < m_sel_point_list.Count; i++)
+                            {
+                                if (m_sel_point_list[i].m_id == value)
+                                {
+                                    m_sel_point_list.RemoveAt(i);
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
-                
+
                 AllPointsInLines.Remove(line_id);
                 AllLines.Remove(line_id);
                 AllLinesColor.Remove(line_id);
-                
-                
+
+
             }
             if (AllPointsInLines.Count > 0)
             {
                 foreach (int value in AllPointsInLines.Keys)
                 {
 
-                    for (int i = 0; i < AllPointsInLines[value].Count;i++ )
+                    for (int i = 0; i < AllPointsInLines[value].Count; i++)
                     {
                         if (!AllPoints.ContainsKey(AllPointsInLines[value][i]))
                             AllPointsInLines[value].Remove(i);
                     }
-                    
+
                 }
             }
             if (AllPointsInRects.Count > 0)
@@ -1263,12 +1300,12 @@ namespace abaqus_helper.CADCtrl
                 foreach (int value in AllPointsInRects.Keys)
                 {
 
-                    for (int i = 0; i < AllPointsInRects[value].Count;i++ )
+                    for (int i = 0; i < AllPointsInRects[value].Count; i++)
                     {
                         if (!AllPoints.ContainsKey(AllPointsInRects[value][i]))
                             AllPointsInRects[value].RemoveAt(i);
                     }
-                    
+
                 }
             }
             this.UpdateBorder();
@@ -1287,7 +1324,17 @@ namespace abaqus_helper.CADCtrl
                             if (AllPoints.ContainsKey(value))
                                 AllPoints.Remove(value);
                             if (SelPoints.ContainsKey(value))
+                            {
                                 SelPoints.Remove(value);
+                                for (int i = 0; i < m_sel_point_list.Count; i++)
+                                {
+                                    if (m_sel_point_list[i].m_id == value)
+                                    {
+                                        m_sel_point_list.RemoveAt(i);
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1301,14 +1348,14 @@ namespace abaqus_helper.CADCtrl
             {
                 foreach (int value in AllPointsInRects.Keys)
                 {
-                    for (int i = 0; i < AllPointsInRects[value].Count;i++ )
+                    for (int i = 0; i < AllPointsInRects[value].Count; i++)
                     {
                         if (!AllPoints.ContainsKey(AllPointsInRects[value][i]))
                             AllPointsInRects[value].RemoveAt(i);
                     }
                 }
             }
-            
+
             this.UpdateBorder();
         }
 
@@ -1323,7 +1370,17 @@ namespace abaqus_helper.CADCtrl
                         if (AllPoints.ContainsKey(value))
                             AllPoints.Remove(value);
                         if (SelPoints.ContainsKey(value))
+                        {
                             SelPoints.Remove(value);
+                            for (int i = 0; i < m_sel_point_list.Count; i++)
+                            {
+                                if (m_sel_point_list[i].m_id == value)
+                                {
+                                    m_sel_point_list.RemoveAt(i);
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
                 AllPointsInRects.Remove(rect_id);
@@ -1343,7 +1400,7 @@ namespace abaqus_helper.CADCtrl
             {
                 foreach (int value in AllPointsInLines.Keys)
                 {
-                    for (int i = 0; i < AllPointsInLines[value].Count;i++ )
+                    for (int i = 0; i < AllPointsInLines[value].Count; i++)
                     {
                         if (!AllPoints.ContainsKey(AllPointsInLines[value][i]))
                             AllPointsInLines[value].RemoveAt(i);
@@ -1354,7 +1411,7 @@ namespace abaqus_helper.CADCtrl
             {
                 foreach (int value in AllPointsInRects.Keys)
                 {
-                    for (int i = 0; i < AllPointsInRects[value].Count;i++ )
+                    for (int i = 0; i < AllPointsInRects[value].Count; i++)
                     {
                         if (!AllPoints.ContainsKey(AllPointsInRects[value][i]))
                             AllPointsInRects[value].RemoveAt(i);
@@ -1377,7 +1434,17 @@ namespace abaqus_helper.CADCtrl
                             if (AllPoints.ContainsKey(value))
                                 AllPoints.Remove(value);
                             if (SelPoints.ContainsKey(value))
+                            {
                                 SelPoints.Remove(value);
+                                for (int i = 0; i < m_sel_point_list.Count; i++)
+                                {
+                                    if (m_sel_point_list[i].m_id == value)
+                                    {
+                                        m_sel_point_list.RemoveAt(i);
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1394,7 +1461,7 @@ namespace abaqus_helper.CADCtrl
                 {
                     if (AllPointsInLines[value].Count > 0)
                     {
-                        for (int i = 0; i < AllPointsInLines[value].Count;i++ )
+                        for (int i = 0; i < AllPointsInLines[value].Count; i++)
                         {
                             if (!AllPoints.ContainsKey(AllPointsInLines[value][i]))
                                 AllPointsInLines[value].RemoveAt(i);
@@ -1470,8 +1537,8 @@ namespace abaqus_helper.CADCtrl
             double a = line.m_ys - line.m_ye;
             double b = line.m_xe - line.m_xs;
             double c = line.m_xs * line.m_ye - line.m_ys * line.m_xe;
-            
-            CADLine normal = new CADLine(point.X,point.Y,point.X-a,point.Y+b);
+
+            CADLine normal = new CADLine(point.X, point.Y, point.X - a, point.Y + b);
             // 如果分母为0 则平行或共线, 不相交  
             double denominator = (line.m_ye - line.m_ys) * (normal.m_xe - normal.m_xs) - (line.m_xs - line.m_xe) * (normal.m_ys - normal.m_ye);
             if (Math.Abs(denominator) < 0.00005)
@@ -1523,7 +1590,7 @@ namespace abaqus_helper.CADCtrl
                     result = result < dis ? result : dis;
                 else
                     result = dis;
-            } 
+            }
             line.m_xs = rect.m_xs;
             line.m_ys = rect.m_ys;
             dis = this.GetDistance(point, line);
@@ -1682,6 +1749,7 @@ namespace abaqus_helper.CADCtrl
             {
                 SelRects.Clear();
                 SelPoints.Clear();
+                m_sel_point_list.Clear();
                 SelLines.Clear();
             }
 
@@ -1697,7 +1765,7 @@ namespace abaqus_helper.CADCtrl
                 }
                 key_down_copy = false;
             }
-            
+
 
 
             if (key_down_move)
@@ -1712,7 +1780,7 @@ namespace abaqus_helper.CADCtrl
                 }
                 key_down_move = false;
             }
-            
+
 
 
             key_down_del = false;
@@ -1740,11 +1808,11 @@ namespace abaqus_helper.CADCtrl
                 key_down_del = true;
                 return;
             }
-            
+
         }
 
-        
-        
+
+
         //private void openGLCtrl_KeyDown(object sender, KeyEventArgs e)
         //{
 
@@ -1819,11 +1887,13 @@ namespace abaqus_helper.CADCtrl
 
     public class CADRect
     {
-        public int m_id {get;set;}
+        public int m_id { get; set; }
         public float m_xs { get; set; }
         public float m_ys { get; set; }
         public float m_xe { get; set; }
         public float m_ye { get; set; }
+        public float m_len { get; set; }
+        public int m_flag { get; set; }//梁柱标志，0表示梁，1表示柱
 
 
         public CADRect()
@@ -1833,30 +1903,38 @@ namespace abaqus_helper.CADCtrl
             m_ys = 0.0f;
             m_xe = 0.0f;
             m_ye = 0.0f;
+            m_len = 0.0f;
+            m_flag = 1;
         }
 
-        public CADRect(Point p1, Point p2)
+        public CADRect(Point p1, Point p2, int flag = 1)
         {
             m_id = 0;
             m_xs = (float)p1.X;
             m_ys = (float)p1.Y;
             m_xe = (float)p2.X;
             m_ye = (float)p2.Y;
+            m_len = 0.0f;
+            m_flag = flag;
         }
 
-        public CADRect(double xs, double ys, double xe, double ye)
+        public CADRect(double xs, double ys, double xe, double ye, int flag = 1)
         {
             m_id = 0;
             m_xs = (float)xs;
             m_ys = (float)ys;
             m_xe = (float)xe;
             m_ye = (float)ye;
+            m_len = 0.0f;
+            m_flag = flag;
         }
 
         public CADRect Copy()
         {
             CADRect result = new CADRect(m_xs, m_ys, m_xe, m_ye);
+            result.m_len = m_len;
             result.m_id = m_id;
+            result.m_flag = m_flag;
             return result;
         }
 
@@ -1866,7 +1944,7 @@ namespace abaqus_helper.CADCtrl
             {
                 if (value == null)
                     return null;
-                CADLine result = new CADLine(value.m_xs,value.m_ys,value.m_xe,value.m_ye);
+                CADLine result = new CADLine(value.m_xs, value.m_ys, value.m_xe, value.m_ye);
                 result.m_id = value.m_id;
                 return result;
             }
@@ -1877,12 +1955,16 @@ namespace abaqus_helper.CADCtrl
 
     public class CADPoint
     {
-        public int m_id = 0;
-        public float m_x = 0.0f;
-        public float m_y = 0.0f;
+        public int m_id { get; set; }
+        public float m_x { get; set; }
+        public float m_y { get; set; }
 
         public CADPoint()
-        { }
+        {
+            m_id = 0;
+            m_x = 0.0f;
+            m_y = 0.0f;
+        }
 
 
         public CADPoint(double x, double y)

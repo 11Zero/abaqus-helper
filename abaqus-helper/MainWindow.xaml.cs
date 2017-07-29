@@ -30,8 +30,10 @@ namespace abaqus_helper
         public delegate void delegateSetProcessCallBack(object value);
         public int[] x_labels = null;
         public int[] y_labels = null;
-        public ObservableCollection<CADLine> dataGrid_list = null;
+        public ObservableCollection<CADRect> dataGrid_list = null;
+        public ObservableCollection<CADPoint> dataGrid_sel_point = null;
         public CADRect m_edit_cell = null;
+        public CADRect m_add_rect = null;
         public int m_cur_cell_val = 0;
         public string m_cur_col_name = "";
         private bool key_down_esc = false;
@@ -52,6 +54,8 @@ namespace abaqus_helper
             y_labels = new int[1];
             dataGrid_list = CADctrl.m_sel_rect_list;
             dataGrid_sel.ItemsSource = dataGrid_list;
+            dataGrid_sel_point = CADctrl.m_sel_point_list;
+            dataGrid_new.ItemsSource = dataGrid_sel_point;
         }
 
         private void InitializeBackgroundWorker()
@@ -314,6 +318,251 @@ namespace abaqus_helper
         }
 
 
+
+
+        private void dataGrid_sel_SelectedCellsChanged(object sender, SelectedCellsChangedEventArgs e)
+        {
+
+        }
+
+        private void dataGrid_sel_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+
+            //bool temp = e.Cancel;
+            if (!key_down_esc && m_edit_cell != null)
+            {
+                int cell_val = m_cur_cell_val;
+
+                if (int.TryParse((e.EditingElement as TextBox).Text, out cell_val))
+                {
+                    switch (m_cur_col_name)
+                    {
+                        case "ID":
+                            { } break;
+                        case "起点X":
+                            {
+                                m_edit_cell.m_xs = cell_val;
+                            } break;
+                        case "起点Y":
+                            {
+                                m_edit_cell.m_ys = cell_val;
+                            } break;
+                        case "终点X":
+                            {
+                                m_edit_cell.m_xe = cell_val;
+                            } break;
+                        case "终点Y":
+                            {
+                                m_edit_cell.m_ye = cell_val;
+                            } break;
+                        case "是柱":
+                            {
+                                if (cell_val != 0)
+                                    m_edit_cell.m_flag = 1;
+                                else
+                                    m_edit_cell.m_flag = 0;
+                            } break;
+                        case "高度":
+                            {
+                                m_edit_cell.m_len = cell_val;
+                            } break;
+                        default:
+                            break;
+                    }
+                    if ((int)((m_edit_cell.m_xs - m_edit_cell.m_xe) * (m_edit_cell.m_xs - m_edit_cell.m_xe)) != 0)
+                        this.CADctrl.UserDrawRect(m_edit_cell);
+                }
+            }
+            m_edit_cell = null;
+            m_cur_col_name = "";
+            m_cur_cell_val = 0;
+            key_down_esc = false;
+        }
+
+        private void dataGrid_sel_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
+        {
+            key_down_esc = false;
+            //CADctrl.key_down_esc = false;
+            m_cur_cell_val = int.Parse((e.Column.GetCellContent(e.Row) as TextBlock).Text);
+            if (m_cur_cell_val == 0)
+                m_cur_cell_val = 68;
+            m_cur_col_name = e.Column.Header.ToString();
+            int rect_id = int.Parse((dataGrid_sel.Columns[0].GetCellContent(dataGrid_sel.Items[e.Row.GetIndex()]) as TextBlock).Text);
+            for (int i = 0; i < dataGrid_list.Count; i++)
+            {
+                if (dataGrid_list[i].m_id == rect_id)
+                {
+                    m_edit_cell = dataGrid_list[i];
+                    break;
+                }
+            }
+        }
+
+
+        private void dataGrid_new_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            if (m_add_rect == null)
+                return;
+            int m_id = int.Parse((dataGrid_new.Columns[0].GetCellContent(e.Row) as TextBlock).Text);
+            if (m_id != m_add_rect.m_id)
+            {
+                m_add_rect = null;
+                return;
+            }
+            string col_name = e.Column.Header.ToString();
+            int cell_val = 0;
+            if (int.TryParse((e.EditingElement as TextBox).Text, out cell_val))
+            {
+                switch (col_name)
+                {
+                    case "ID":
+                        { } break;
+                    case "起点X":
+                        {
+                            m_add_rect.m_xs = cell_val;
+                        } break;
+                    case "起点Y":
+                        {
+                            m_add_rect.m_ys = cell_val;
+                        } break;
+                    case "终点X":
+                        {
+                            m_add_rect.m_xe = cell_val;
+                        } break;
+                    case "终点Y":
+                        {
+                            m_add_rect.m_ye = cell_val;
+                        } break;
+                    case "是柱":
+                        {
+                            if (cell_val != 0)
+                                m_add_rect.m_flag = 1;
+                            else
+                                m_add_rect.m_flag = 0;
+                        } break;
+                    case "高度":
+                        {
+                            m_add_rect.m_len = cell_val;
+                        } break;
+                    default:
+                        break;
+                }
+                if ((int)((m_add_rect.m_xs - m_add_rect.m_xe) * (m_add_rect.m_ys - m_add_rect.m_ye)) != 0)
+                {这里存在每次修改起始点数据就会触发addrect
+                    m_add_rect.m_id = 0;
+                    this.CADctrl.UserDrawRect(m_add_rect);
+                    //m_add_rect = null;
+                }
+                //else
+            }
+
+            //int m_xs =0;
+            //bool b_xs = int.TryParse((dataGrid_new.Columns[1].GetCellContent(dataGrid_new.Items[e.Row.GetIndex()]) as TextBlock).Text, out m_xs);
+            //int m_ys =0;
+            //bool b_ys = int.TryParse((dataGrid_new.Columns[2].GetCellContent(dataGrid_new.Items[e.Row.GetIndex()]) as TextBlock).Text, out m_ys);
+            //int m_xe =0;
+            //bool b_xe = int.TryParse((dataGrid_new.Columns[3].GetCellContent(dataGrid_new.Items[e.Row.GetIndex()]) as TextBlock).Text, out m_xe);
+            //int m_ye =0;
+            //bool b_ye = int.TryParse((dataGrid_new.Columns[4].GetCellContent(dataGrid_new.Items[e.Row.GetIndex()]) as TextBlock).Text, out m_ye);
+            //int flag =0;
+            //int len = 0;
+            //if (int.TryParse((dataGrid_new.Columns[1].GetCellContent(dataGrid_new.Items[e.Row.GetIndex()]) as TextBlock).Text, out m_xs) &&
+            //    int.TryParse((dataGrid_new.Columns[2].GetCellContent(dataGrid_new.Items[e.Row.GetIndex()]) as TextBlock).Text, out m_ys) &&
+            //    int.TryParse((dataGrid_new.Columns[3].GetCellContent(dataGrid_new.Items[e.Row.GetIndex()]) as TextBlock).Text, out m_xe) &&
+            //    int.TryParse((dataGrid_new.Columns[4].GetCellContent(dataGrid_new.Items[e.Row.GetIndex()]) as TextBlock).Text, out m_ye))
+            //{
+            //    if ((int)(m_xe - m_xs) * (m_ye - m_ys) != 0)
+            //    {
+            //        m_add_rect.m_id = 0;
+            //        m_add_rect.m_xs = m_xs;
+            //        m_add_rect.m_ys = m_ys;
+            //        m_add_rect.m_xe = m_xe;
+            //        m_add_rect.m_ye = m_ye;
+            //        if (int.TryParse((dataGrid_new.Columns[5].GetCellContent(e.Row) as TextBlock).Text, out flag))
+            //        {
+            //            if (flag == 1 || flag == 0)
+            //                m_add_rect.m_flag = flag;
+            //        }
+            //        if (int.TryParse((dataGrid_new.Columns[6].GetCellContent(e.Row) as TextBlock).Text, out len))
+            //            m_add_rect.m_len = len;
+            //        CADctrl.UserDrawRect(m_add_rect);
+            //        m_add_rect = null;
+            //    }
+            //}
+            //else
+            //    m_add_rect = null;
+
+        }
+
+        private void dataGrid_new_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
+        {
+            key_down_esc = false;
+            int m_id = int.Parse((dataGrid_new.Columns[0].GetCellContent(e.Row) as TextBlock).Text);
+            if (m_add_rect == null || m_add_rect.m_id != m_id)
+            {
+                m_add_rect = new CADRect();
+
+                int m_x = int.Parse((dataGrid_new.Columns[1].GetCellContent(e.Row) as TextBlock).Text);
+                int m_y = int.Parse((dataGrid_new.Columns[2].GetCellContent(e.Row) as TextBlock).Text);
+
+                m_add_rect.m_id = m_id;
+                m_add_rect.m_xs = m_x;
+                m_add_rect.m_ys = m_y;
+            }
+
+        }
+
+ 
+
+        private void dataGrid_sel_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                key_down_esc = true;
+            }
+        }
+
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                key_down_esc = true;
+                CADctrl.RectToESC();
+            }
+            if (e.Key == Key.C)
+            {
+                
+                //key_down_copy = true;
+                CADctrl.key_down_copy = true;
+                CADctrl.key_down_move = false;
+                CADctrl.key_down_del = false;
+                return;
+            }
+            if (e.Key == Key.M)
+            {
+
+                CADctrl.key_down_copy = false;
+                CADctrl.key_down_move = true;
+                CADctrl.key_down_del = false;
+                return;
+            }
+            if (e.Key == Key.Delete)
+            {
+                CADctrl.key_down_copy = false;
+                CADctrl.key_down_move = false;
+                CADctrl.key_down_del = true;
+                int[] sel_keys = CADctrl.UserGetSelRects();
+                foreach (int key in sel_keys)
+                {
+                    CADctrl.UserDelRect(key);
+                }
+                return;
+            }
+
+        }
+
+
+
         private void button1_Click(object sender, RoutedEventArgs e)
         {
             //CADctrl.UserDelAllRects();
@@ -401,121 +650,6 @@ namespace abaqus_helper
             CADctrl.ZoomView();
         }
 
-        private void dataGrid_sel_SelectedCellsChanged(object sender, SelectedCellsChangedEventArgs e)
-        {
 
-        }
-
-        private void dataGrid_sel_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
-        {
-
-            //bool temp = e.Cancel;
-            if (!key_down_esc && m_edit_cell != null)
-            {
-                int cell_val = m_cur_cell_val;
-
-                if (int.TryParse((e.EditingElement as TextBox).Text, out cell_val))
-                {
-                    
-                    switch (m_cur_col_name)
-                    {
-                        case "ID":
-                            { } break;
-                        case "起点X":
-                            {
-                                m_edit_cell.m_xs = cell_val;
-                            } break;
-                        case "起点Y":
-                            {
-                                m_edit_cell.m_ys = cell_val;
-                            } break;
-                        case "终点X":
-                            {
-                                m_edit_cell.m_xe = cell_val;
-                            } break;
-                        case "终点Y":
-                            {
-                                m_edit_cell.m_ye = cell_val;
-                            } break;
-                        default:
-                            break;
-                    }
-                    if (cell_val != 0)
-                        this.CADctrl.UserDrawRect(m_edit_cell);
-                }
-            }
-            m_edit_cell = null;
-            m_cur_col_name = "";
-            m_cur_cell_val = 0;
-            key_down_esc = false;
-        }
-
-        private void dataGrid_sel_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
-        {
-            key_down_esc = false;
-            //CADctrl.key_down_esc = false;
-            m_cur_cell_val = int.Parse((e.Column.GetCellContent(e.Row) as TextBlock).Text);
-            if (m_cur_cell_val == 0)
-                m_cur_cell_val = 68;
-            m_cur_col_name = e.Column.Header.ToString();
-            int rect_id = int.Parse((dataGrid_sel.Columns[0].GetCellContent(dataGrid_sel.Items[e.Row.GetIndex()]) as TextBlock).Text);
-            for (int i = 0; i < dataGrid_list.Count; i++)
-            {
-                if (dataGrid_list[i].m_id == rect_id)
-                {
-                    m_edit_cell = dataGrid_list[i];
-                    break;
-                }
-            }
-        }
-
- 
-
-        private void dataGrid_sel_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Escape)
-            {
-                key_down_esc = true;
-            }
-        }
-
-        private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Escape)
-            {
-                key_down_esc = true;
-                CADctrl.RectToESC();
-            }
-            if (e.Key == Key.C)
-            {
-                
-                //key_down_copy = true;
-                CADctrl.key_down_copy = true;
-                CADctrl.key_down_move = false;
-                CADctrl.key_down_del = false;
-                return;
-            }
-            if (e.Key == Key.M)
-            {
-
-                CADctrl.key_down_copy = false;
-                CADctrl.key_down_move = true;
-                CADctrl.key_down_del = false;
-                return;
-            }
-            if (e.Key == Key.Delete)
-            {
-                CADctrl.key_down_copy = false;
-                CADctrl.key_down_move = false;
-                CADctrl.key_down_del = true;
-                int[] sel_keys = CADctrl.UserGetSelRects();
-                foreach (int key in sel_keys)
-                {
-                    CADctrl.UserDelRect(key);
-                }
-                return;
-            }
-
-        }
     }
 }
