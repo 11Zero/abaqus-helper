@@ -204,9 +204,11 @@ namespace abaqus_helper.CADCtrl
 
                 if (id_sel_point > 0)
                 {
+                    CADPoint temp_cur_point = null;
 
                     if (AllPoints.ContainsKey(id_sel_point))
                     {
+                        
                         if (key_down_move || key_down_copy)
                         {
                             Vector move = new Vector(AllPoints[id_sel_point].m_x - m_cur_sel_point.m_x, AllPoints[id_sel_point].m_y - m_cur_sel_point.m_y);
@@ -214,8 +216,14 @@ namespace abaqus_helper.CADCtrl
                             {
                                 if (key_down_move)
                                 {
+                                    
+                                    
                                     foreach (int value in SelRects.Keys)
                                     {
+                                        if(AllPointsInRects[value].Contains(id_sel_point))
+                                        {
+                                            temp_cur_point = AllPoints[id_sel_point].Copy();
+                                        }
                                         SelRects[value].m_xs = AllRects[value].m_xs + (float)move.X;
                                         SelRects[value].m_ys = AllRects[value].m_ys + (float)move.Y;
                                         SelRects[value].m_xe = AllRects[value].m_xe + (float)move.X;
@@ -244,8 +252,6 @@ namespace abaqus_helper.CADCtrl
                                         SelRects.Add(RectNumber, new_rect);
                                         this.AddRect(new_rect);
                                     }
-
-
                                 }
                             }
                         }
@@ -265,13 +271,24 @@ namespace abaqus_helper.CADCtrl
                         //    }
                         //}
 
-                        m_cur_sel_point = AllPoints[id_sel_point].Copy();
+                        
+                        if (temp_cur_point != null)
+                        {
+                            m_cur_sel_point = temp_cur_point;
+                            this.AddPoint(temp_cur_point);
+                        }
+                        else
+                            m_cur_sel_point = AllPoints[id_sel_point].Copy();
                         key_down_move = false;
                     }
 
                     if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
                     {
                         this.SelPoint(id_sel_point);
+                        if (temp_cur_point != null)
+                        {
+                            this.AllPoints.Remove(id_sel_point);
+                        }
                         return;
                     }
                     else
@@ -282,8 +299,13 @@ namespace abaqus_helper.CADCtrl
                             m_sel_point_list.Clear();
                         }
                         this.SelPoint(id_sel_point);
+                        if (temp_cur_point != null)
+                        {
+                            this.AllPoints.Remove(id_sel_point);
+                        }
                         return;
                     }
+                    //temp_cur_point = null;
                 }
                 else
                 {
@@ -505,10 +527,20 @@ namespace abaqus_helper.CADCtrl
             this.DrawLine(new CADLine(0, 0, 0.5 / m_scale, 0));
             this.DrawLine(new CADLine(0.5 / m_scale, 0, 0.4 / m_scale, 0.05 / m_scale));
             this.DrawLine(new CADLine(0.5 / m_scale, 0, 0.4 / m_scale, -0.05 / m_scale));
+            this.DrawLine(new CADLine(0.4 / m_scale, 0.05 / m_scale, 0.4 / m_scale, -0.05 / m_scale));
+
+            this.DrawLine(new CADLine(0.15 / m_scale, -0.1 / m_scale, 0.35 / m_scale, -0.3 / m_scale));
+            this.DrawLine(new CADLine(0.15 / m_scale, -0.3 / m_scale, 0.35 / m_scale, -0.1 / m_scale));
+            //this.DrawLine(new CADLine(0.5 / m_scale, 0, 0.4 / m_scale, 0.05 / m_scale));
 
             this.DrawLine(new CADLine(0, 0, 0, 0.5 / m_scale));
             this.DrawLine(new CADLine(0, 0.5 / m_scale, 0.05 / m_scale, 0.4 / m_scale));
             this.DrawLine(new CADLine(0, 0.5 / m_scale, -0.05 / m_scale, 0.4 / m_scale));
+            this.DrawLine(new CADLine(0.05 / m_scale, 0.4 / m_scale, -0.05 / m_scale, 0.4 / m_scale));
+
+            this.DrawLine(new CADLine(-0.2 / m_scale, 0.25 / m_scale, -0.1 / m_scale, 0.35 / m_scale));
+            this.DrawLine(new CADLine(-0.2 / m_scale, 0.25 / m_scale, -0.3 / m_scale, 0.35 / m_scale));
+            this.DrawLine(new CADLine(-0.2 / m_scale, 0.25 / m_scale, -0.2 / m_scale, 0.1 / m_scale));
 
 
             string pos_str = string.Format("Point:[{2:0.00},{3:0.00}]   Position:[{0:0.00},{1:0.00}]", m_currentpos.X / m_scale / m_pixaxis, m_currentpos.Y / m_scale / m_pixaxis, m_cur_sel_point.m_x, m_cur_sel_point.m_y);
@@ -698,19 +730,39 @@ namespace abaqus_helper.CADCtrl
                         AllPoints.Remove(pointsItems[i]);
                 }
                 pointsItems.Clear();
-                this.AddPoint(point);
+                this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
                 point.m_x = this_rect.m_xs;
                 point.m_y = this_rect.m_ye;
-                this.AddPoint(point);
+                this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
                 point.m_x = this_rect.m_xe;
                 point.m_y = this_rect.m_ys;
-                this.AddPoint(point);
+                this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
                 point.m_x = this_rect.m_xe;
                 point.m_y = this_rect.m_ye;
-                this.AddPoint(point);
+                this.AddPoint(point);//角点
+                pointsItems.Add(PointNumber);
+                point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
+                point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
+                this.AddPoint(point);//中心
+                pointsItems.Add(PointNumber);
+                point.m_x = this_rect.m_xs;
+                point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
+                this.AddPoint(point);//边中点
+                pointsItems.Add(PointNumber);
+                point.m_x = this_rect.m_xe;
+                point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
+                this.AddPoint(point);//边中点
+                pointsItems.Add(PointNumber);
+                point.m_x = (this_rect.m_xs + this_rect.m_xe)/2;
+                point.m_y = this_rect.m_ys;
+                this.AddPoint(point);//边中点
+                pointsItems.Add(PointNumber);
+                point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
+                point.m_y = this_rect.m_ye;
+                this.AddPoint(point);//边中点
                 pointsItems.Add(PointNumber);
                 //int[] pointsItems = { PointNumber - 3, PointNumber - 2,PointNumber - 1, PointNumber };
                 AllPointsInRects[this_rect_id] = pointsItems;
@@ -728,19 +780,39 @@ namespace abaqus_helper.CADCtrl
                 AllRectsColor.Add(this_rect_id, color_id);
                 CADPoint point = new CADPoint(this_rect.m_xs, this_rect.m_ys);
                 List<int> pointsItems = new List<int>();
-                this.AddPoint(point);
+                this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
                 point.m_x = this_rect.m_xs;
                 point.m_y = this_rect.m_ye;
-                this.AddPoint(point);
+                this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
                 point.m_x = this_rect.m_xe;
                 point.m_y = this_rect.m_ys;
-                this.AddPoint(point);
+                this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
                 point.m_x = this_rect.m_xe;
                 point.m_y = this_rect.m_ye;
-                this.AddPoint(point);
+                this.AddPoint(point);//角点
+                pointsItems.Add(PointNumber);
+                point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
+                point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
+                this.AddPoint(point);//中心
+                pointsItems.Add(PointNumber);
+                point.m_x = this_rect.m_xs;
+                point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
+                this.AddPoint(point);//边中点
+                pointsItems.Add(PointNumber);
+                point.m_x = this_rect.m_xe;
+                point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
+                this.AddPoint(point);//边中点
+                pointsItems.Add(PointNumber);
+                point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
+                point.m_y = this_rect.m_ys;
+                this.AddPoint(point);//边中点
+                pointsItems.Add(PointNumber);
+                point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
+                point.m_y = this_rect.m_ye;
+                this.AddPoint(point);//边中点
                 pointsItems.Add(PointNumber);
                 //int[] pointsItems = { PointNumber - 3, PointNumber - 2, PointNumber - 1, PointNumber };
                 AllPointsInRects.Add(this_rect_id, pointsItems);
@@ -1894,10 +1966,12 @@ namespace abaqus_helper.CADCtrl
         public float m_ye { get; set; }
         public float m_len { get; set; }
         public int m_flag { get; set; }//梁柱标志，0表示梁，1表示柱
-
+        public float m_width { get; set; }
+        public float m_height { get; set; }
 
         public CADRect()
         {
+            
             m_id = 0;
             m_xs = 0.0f;
             m_ys = 0.0f;
@@ -1905,10 +1979,13 @@ namespace abaqus_helper.CADCtrl
             m_ye = 0.0f;
             m_len = 0.0f;
             m_flag = 1;
+            m_width = Math.Abs(m_xs - m_xe);
+            m_height = Math.Abs(m_ys - m_ye);
         }
 
         public CADRect(Point p1, Point p2, int flag = 1)
         {
+            
             m_id = 0;
             m_xs = (float)p1.X;
             m_ys = (float)p1.Y;
@@ -1916,10 +1993,13 @@ namespace abaqus_helper.CADCtrl
             m_ye = (float)p2.Y;
             m_len = 0.0f;
             m_flag = flag;
+            m_width = Math.Abs(m_xs - m_xe);
+            m_height = Math.Abs(m_ys - m_ye);
         }
 
         public CADRect(double xs, double ys, double xe, double ye, int flag = 1)
         {
+            
             m_id = 0;
             m_xs = (float)xs;
             m_ys = (float)ys;
@@ -1927,6 +2007,14 @@ namespace abaqus_helper.CADCtrl
             m_ye = (float)ye;
             m_len = 0.0f;
             m_flag = flag;
+            m_width = Math.Abs(m_xs - m_xe);
+            m_height = Math.Abs(m_ys - m_ye);
+        }
+
+        public void UpdataWH()
+        {
+            m_width = Math.Abs(m_xs - m_xe);
+            m_height = Math.Abs(m_ys - m_ye);
         }
 
         public CADRect Copy()

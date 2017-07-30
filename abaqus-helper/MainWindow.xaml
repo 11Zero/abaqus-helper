@@ -18,10 +18,6 @@
 
     </Window.Resources>
     <Grid Height="616" >
-        <TextBlock Height="23" HorizontalAlignment="Left" Margin="34,28,0,0" Name="textBlock_x" Text="X方向轴间距" VerticalAlignment="Top" />
-        <TextBox Height="23" HorizontalAlignment="Left" Margin="120,28,0,0" Name="textBox_x" VerticalAlignment="Top" Width="267" />
-        <TextBlock Height="23" HorizontalAlignment="Left" Margin="34,57,0,0" Name="textBlock_y" Text="Y方向轴间距" VerticalAlignment="Top" />
-        <TextBox Height="23" HorizontalAlignment="Left" Margin="120,57,0,0" Name="textBox_y" VerticalAlignment="Top" Width="267" />
         <my:CADCtrl HorizontalAlignment="Right" x:Name="CADctrl" VerticalAlignment="Top" Height="387" Width="707" Margin="0,0,12,0" />
         <DockPanel Height="21" HorizontalAlignment="Left" Name="dockPanel_bottom" VerticalAlignment="Bottom" Width="1178">
             <StatusBar Height="21" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="556">
@@ -29,9 +25,9 @@
             </StatusBar>
             <ProgressBar Height="21" Name="progressBar"  VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="128" />
         </DockPanel>
-        <Button Content="画矩形" Height="59" HorizontalAlignment="Left" Margin="66,165,0,0" Name="button1" VerticalAlignment="Top" Width="143" Click="button1_Click" />
-        <Button Content="画轴网" Height="59" HorizontalAlignment="Left" Margin="66,264,0,0" Name="button2" VerticalAlignment="Top" Width="143" Click="button2_Click" />
-        <DataGrid  AutoGenerateColumns="False" CanUserDeleteRows="False" CanUserAddRows="False" ItemsSource="{Binding}" Height="200" HorizontalAlignment="Left" Margin="829,396,0,0" Name="dataGrid_sel" VerticalAlignment="Top" Width="338" SelectedCellsChanged="dataGrid_sel_SelectedCellsChanged" CellEditEnding="dataGrid_sel_CellEditEnding" BeginningEdit="dataGrid_sel_BeginningEdit" KeyDown="dataGrid_sel_KeyDown" DataContext="{Binding}">
+        <Button Content="画矩形" Height="59" HorizontalAlignment="Left" Margin="169,370,0,0" Name="button1" VerticalAlignment="Top" Width="143" Click="button1_Click" />
+        <Button Content="画轴网" Height="59" HorizontalAlignment="Left" Margin="20,370,0,0" Name="button2" VerticalAlignment="Top" Width="143" Click="button2_Click" />
+        <DataGrid  AutoGenerateColumns="False" CanUserDeleteRows="False" CanUserAddRows="False" ItemsSource="{Binding}" Height="200" HorizontalAlignment="Left" Margin="730,396,0,0" Name="dataGrid_sel" VerticalAlignment="Top" Width="436" SelectedCellsChanged="dataGrid_sel_SelectedCellsChanged" CellEditEnding="dataGrid_sel_CellEditEnding" BeginningEdit="dataGrid_sel_BeginningEdit" KeyDown="dataGrid_sel_KeyDown" DataContext="{Binding}">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="ID" IsReadOnly="True" Width="30" HeaderStyle="{StaticResource headerCenterStyle}" ElementStyle="{StaticResource contentCenterStyle}"  Binding="{Binding m_id}"/>
                 <DataGridTextColumn Header="起点X" Width="50"  HeaderStyle="{StaticResource headerCenterStyle}" ElementStyle="{StaticResource contentCenterStyle}" Binding="{Binding m_xs}"/>
@@ -39,20 +35,40 @@
                 <DataGridTextColumn Header="终点X" Width="50"  HeaderStyle="{StaticResource headerCenterStyle}" ElementStyle="{StaticResource contentCenterStyle}" Binding="{Binding m_xe}"/>
                 <DataGridTextColumn Header="终点Y" Width="50"  HeaderStyle="{StaticResource headerCenterStyle}" ElementStyle="{StaticResource contentCenterStyle}" Binding="{Binding m_ye}"/>
                 <DataGridTextColumn Header="是柱" Width="50"  HeaderStyle="{StaticResource headerCenterStyle}" ElementStyle="{StaticResource contentCenterStyle}" Binding="{Binding m_flag}"/>
-                <DataGridTextColumn Header="高度" Width="50"  HeaderStyle="{StaticResource headerCenterStyle}" ElementStyle="{StaticResource contentCenterStyle}" Binding="{Binding m_len}"/>
+                <DataGridTextColumn Header="宽度" Width="50" HeaderStyle="{StaticResource headerCenterStyle}" ElementStyle="{StaticResource contentCenterStyle}" Binding="{Binding m_width}"/>
+                <DataGridTextColumn Header="高度" Width="50" HeaderStyle="{StaticResource headerCenterStyle}" ElementStyle="{StaticResource contentCenterStyle}" Binding="{Binding m_height}"/>
+                <DataGridTextColumn Header="深度" Width="50" HeaderStyle="{StaticResource headerCenterStyle}" ElementStyle="{StaticResource contentCenterStyle}" Binding="{Binding m_len}"/>
             </DataGrid.Columns>
         </DataGrid>
-        <DataGrid AutoGenerateColumns="False" CanUserAddRows="True" CanUserDeleteRows="True" Height="200" HorizontalAlignment="Left" ItemsSource="{Binding}" Margin="459,396,0,0" Name="dataGrid_new" VerticalAlignment="Top" Width="338" DataContext="{Binding}" CellEditEnding="dataGrid_new_CellEditEnding" BeginningEdit="dataGrid_new_BeginningEdit">
+        <DataGrid AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" Height="200" HorizontalAlignment="Left" ItemsSource="{Binding}" Margin="570,396,0,0" Name="dataGrid_new" VerticalAlignment="Top" Width="150" DataContext="{Binding}" CellEditEnding="dataGrid_new_CellEditEnding" BeginningEdit="dataGrid_new_BeginningEdit">
             <DataGrid.Columns>
                 <DataGridTextColumn Binding="{Binding m_id}" ElementStyle="{StaticResource contentCenterStyle}" Header="ID" HeaderStyle="{StaticResource headerCenterStyle}" IsReadOnly="True" Width="30" />
-                <DataGridTextColumn Binding="{Binding m_x}" ElementStyle="{StaticResource contentCenterStyle}" Header="起点X" HeaderStyle="{StaticResource headerCenterStyle}" Width="50" />
-                <DataGridTextColumn Binding="{Binding m_y}" ElementStyle="{StaticResource contentCenterStyle}" Header="起点Y" HeaderStyle="{StaticResource headerCenterStyle}" Width="50" />
-                <DataGridTextColumn ElementStyle="{StaticResource contentCenterStyle}" Header="终点X" HeaderStyle="{StaticResource headerCenterStyle}" Width="50" />
-                <DataGridTextColumn ElementStyle="{StaticResource contentCenterStyle}" Header="终点Y" HeaderStyle="{StaticResource headerCenterStyle}" Width="50" />
-                <DataGridTextColumn ElementStyle="{StaticResource contentCenterStyle}" Header="是柱" HeaderStyle="{StaticResource headerCenterStyle}" Width="50" />
-                <DataGridTextColumn ElementStyle="{StaticResource contentCenterStyle}" Header="高度" HeaderStyle="{StaticResource headerCenterStyle}" Width="50" />
-            </DataGrid.Columns>
+                <DataGridTextColumn Binding="{Binding m_x}" ElementStyle="{StaticResource contentCenterStyle}" Header="X" HeaderStyle="{StaticResource headerCenterStyle}" Width="50" />
+                <DataGridTextColumn Binding="{Binding m_y}" ElementStyle="{StaticResource contentCenterStyle}" Header="Y" HeaderStyle="{StaticResource headerCenterStyle}" Width="50" />
+                </DataGrid.Columns>
         </DataGrid>
+        <GroupBox Header="轴网及层高" Height="120" HorizontalAlignment="Left" Margin="20,12,0,0" Name="groupBox1" VerticalAlignment="Top" Width="433">
+            <Grid>
+                <TextBlock Height="23" HorizontalAlignment="Left" Margin="9,10,0,0" Name="textBlock_x" Text="X方向轴间距" VerticalAlignment="Top" />
+                <TextBox Height="23" HorizontalAlignment="Left" Margin="95,10,0,0" Name="textBox_x" VerticalAlignment="Top" Width="267" />
+                <TextBlock Height="23" HorizontalAlignment="Left" Margin="9,39,0,0" Name="textBlock_y" Text="Y方向轴间距" VerticalAlignment="Top" />
+                <TextBox Height="23" HorizontalAlignment="Left" Margin="95,39,0,0" Name="textBox_y" VerticalAlignment="Top" Width="267" />
+                <TextBlock Height="23" HorizontalAlignment="Left" Margin="9,68,0,0" Name="textBlock3" Text="Z向楼层间距" VerticalAlignment="Top" />
+                <TextBox Height="23" HorizontalAlignment="Left" Margin="95,68,0,0" Name="textBox_z" VerticalAlignment="Top" Width="267" />
+                <Button Content="确定" Height="82" HorizontalAlignment="Left" Margin="368,9,0,0" Name="btn_xyz_ok" VerticalAlignment="Top" Width="46" Click="btn_xyz_ok_Click" />
+            </Grid>
+        </GroupBox>
+        <GroupBox Header="梁柱定义" Height="141" HorizontalAlignment="Left" Margin="20,187,0,0" Name="groupBox2" VerticalAlignment="Top" Width="420">
+            <Grid>
+                <TextBox Height="23" HorizontalAlignment="Left" Margin="66,20,0,0" Name="textBox_concrete" VerticalAlignment="Top" Width="152" />
+                <TextBlock Height="23" HorizontalAlignment="Left" Margin="9,21,0,0" Name="textBlock1" Text="宽 高 深" VerticalAlignment="Top" />
+                <RadioButton Content="梁" Height="16" HorizontalAlignment="Left" Margin="267,24,0,0" Name="radio_beam" VerticalAlignment="Top" />
+                <RadioButton Content="柱" IsChecked ="True" Height="16" HorizontalAlignment="Left" Margin="233,24,0,0" Name="radio_col" VerticalAlignment="Top" />
+                <TextBlock Height="23" HorizontalAlignment="Left" Margin="9,49,0,0" Name="textBlock2" Text="(宽:横向，高:竖向，深:指向屏幕内方向)" VerticalAlignment="Top" />
+                <Button Content="添加" Height="23" HorizontalAlignment="Left" Margin="309,24,0,0" Name="btn_add_concrete" VerticalAlignment="Top" Width="75" Click="btn_add_concrete_Click" />
+                <ComboBox Height="23" HorizontalAlignment="Left" Margin="309,53,0,0" Name="comboBox_floor" VerticalAlignment="Top" Width="75" SelectionChanged="comboBox_floor_SelectionChanged" />
+            </Grid>
+        </GroupBox>
     </Grid>
 
 </Window>
