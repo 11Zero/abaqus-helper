@@ -33,6 +33,7 @@ namespace abaqus_helper
         public int[] z_labels = null;
         public ObservableCollection<CADRect> dataGrid_list = null;
         public ObservableCollection<CADPoint> dataGrid_sel_point = null;
+        public ObservableCollection<CADPoint> dataGrid_sel_rebar = null;
         public CADRect m_edit_cell = null;
         public CADRect m_add_rect = null;
         public int m_cur_cell_val = 0;
@@ -40,6 +41,7 @@ namespace abaqus_helper
         private bool key_down_esc = false;
         Dictionary<int, CADRect>[] ctrl_all_rects = null;
         private int cur_floor;
+
         //private bool key_down_copy = false;
         //private bool key_down_move = false;
         //private bool key_down_del = false;
@@ -55,12 +57,44 @@ namespace abaqus_helper
             msgQueue = new Queue<int>();
             //x_labels = new int[1];
             //y_labels = new int[1];
-            dataGrid_list = CADctrl.m_sel_rect_list;
+            dataGrid_list = CADctrl_frame.m_sel_rect_list;
             dataGrid_sel.ItemsSource = dataGrid_list;
-            dataGrid_sel_point = CADctrl.m_sel_point_list;
+            dataGrid_sel_point = CADctrl_frame.m_sel_point_list;
+            dataGrid_sel_rebar = CADctrl_rebar.m_sel_point_list;
             dataGrid_new.ItemsSource = dataGrid_sel_point;
+            dataGrid_rebar.ItemsSource = dataGrid_sel_rebar;
             cur_floor = -1;
+            #region
+            comboBox_concrete.Items.Add("C20");
+            comboBox_concrete.Items.Add("C25");
+            comboBox_concrete.Items.Add("C30");
+            comboBox_concrete.Items.Add("C35");
+            comboBox_concrete.Items.Add("C40");
+            comboBox_concrete.Items.Add("C50");
+            comboBox_concrete.Items.Add("C60");
+
+            comboBox_strength.Items.Add("HPB235");
+            comboBox_strength.Items.Add("HRB335");
+            comboBox_strength.Items.Add("HRB400");
+            comboBox_strength.Items.Add("RRB400");
+
+
+            comboBox_diameter.Items.Add("6");
+            comboBox_diameter.Items.Add("6.5");
+            comboBox_diameter.Items.Add("8");
+            comboBox_diameter.Items.Add("12");
+            comboBox_diameter.Items.Add("14");
+            comboBox_diameter.Items.Add("16");
+            comboBox_diameter.Items.Add("18");
+            comboBox_diameter.Items.Add("20");
+            comboBox_diameter.Items.Add("22");
+            comboBox_diameter.Items.Add("25");
+            comboBox_diameter.Items.Add("28");
+            #endregion
+            CADctrl_rebar.isRebar = 1;
+            CADctrl_rebar.m_scale = 0.05;
             
+
         }
 
         private void InitializeBackgroundWorker()
@@ -358,24 +392,38 @@ namespace abaqus_helper
             }
             this.statusBar.Content = "就绪";
             z_labels = z_input.ToArray();
-            
+
             Dictionary<int, CADRect>[] old_ctrl_all_rects = null;
-            ctrl_all_rects.CopyTo(old_ctrl_all_rects, 0);
-            
-            ctrl_all_rects = new Dictionary<int, CADRect>[z_labels.Length];
-            for (int i = 0; i < old_ctrl_all_rects.Length; i++)
+            if (ctrl_all_rects != null)
             {
-                ct
+                old_ctrl_all_rects = new Dictionary<int, CADRect>[ctrl_all_rects.Length];
+                ctrl_all_rects.CopyTo(old_ctrl_all_rects, 0);
+
+                ctrl_all_rects = new Dictionary<int, CADRect>[z_labels.Length];
+                for (int i = 0; i < old_ctrl_all_rects.Length && i < z_labels.Length; i++)
+                {
+                    ctrl_all_rects[i] = old_ctrl_all_rects[i];
+                }
+            }
+            else
+            {
+                ctrl_all_rects = new Dictionary<int, CADRect>[z_labels.Length];
+                for (int i = 0; i < z_labels.Length; i++)
+                {
+                    Dictionary<int, CADRect> floor_concrete = new Dictionary<int, CADRect>();
+                    ctrl_all_rects[i] = floor_concrete;
+                }
             }
 
-                cur_floor = -1;
+            //cur_floor = 1;
 
             comboBox_floor.Items.Clear();
-            for(int i=0;i<z_labels.Length;i++)
+            for (int i = 0; i < z_labels.Length; i++)
             {
-                comboBox_floor.Items.Add(i+1); 
+                comboBox_floor.Items.Add(i + 1);
             }
             comboBox_floor.SelectedIndex = 0;
+            //cur_floor = 1;
 
         }
 
@@ -426,7 +474,7 @@ namespace abaqus_helper
                         case "宽度":
                             {
                                 m_edit_cell.m_width = cell_val;
-                                Point center = new Point((m_edit_cell.m_xs+m_edit_cell.m_xe)/2,(m_edit_cell.m_ys+m_edit_cell.m_ye)/2);
+                                Point center = new Point((m_edit_cell.m_xs + m_edit_cell.m_xe) / 2, (m_edit_cell.m_ys + m_edit_cell.m_ye) / 2);
                                 m_edit_cell.m_xs = (float)center.X - cell_val / 2;
                                 m_edit_cell.m_xe = (float)center.X + cell_val / 2;
                             } break;
@@ -447,7 +495,7 @@ namespace abaqus_helper
                     if ((int)((m_edit_cell.m_xs - m_edit_cell.m_xe) * (m_edit_cell.m_xs - m_edit_cell.m_xe)) != 0)
                     {
                         m_edit_cell.UpdataWH();
-                        this.CADctrl.UserDrawRect(m_edit_cell);
+                        this.CADctrl_frame.UserDrawRect(m_edit_cell);
                     }
                 }
             }
@@ -460,7 +508,7 @@ namespace abaqus_helper
         private void dataGrid_sel_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
         {
             key_down_esc = false;
-            //CADctrl.key_down_esc = false;
+            //CADctrl_frame.key_down_esc = false;
             m_cur_cell_val = int.Parse((e.Column.GetCellContent(e.Row) as TextBlock).Text);
             if (m_cur_cell_val == 0)
                 m_cur_cell_val = 68;
@@ -528,7 +576,7 @@ namespace abaqus_helper
                 if ((int)((m_add_rect.m_xs - m_add_rect.m_xe) * (m_add_rect.m_ys - m_add_rect.m_ye)) != 0)
                 {//这里存在每次修改起始点数据就会触发addrect
                     m_add_rect.m_id = 0;
-                    this.CADctrl.UserDrawRect(m_add_rect);
+                    this.CADctrl_frame.UserDrawRect(m_add_rect);
                     //m_add_rect = null;
                 }
                 //else
@@ -563,7 +611,7 @@ namespace abaqus_helper
             //        }
             //        if (int.TryParse((dataGrid_new.Columns[6].GetCellContent(e.Row) as TextBlock).Text, out len))
             //            m_add_rect.m_len = len;
-            //        CADctrl.UserDrawRect(m_add_rect);
+            //        CADctrl_frame.UserDrawRect(m_add_rect);
             //        m_add_rect = null;
             //    }
             //}
@@ -590,7 +638,7 @@ namespace abaqus_helper
 
         }
 
- 
+
 
         private void dataGrid_sel_KeyDown(object sender, KeyEventArgs e)
         {
@@ -605,34 +653,34 @@ namespace abaqus_helper
             if (e.Key == Key.Escape)
             {
                 key_down_esc = true;
-                CADctrl.RectToESC();
+                CADctrl_frame.RectToESC();
             }
             if (e.Key == Key.C)
             {
-                
+
                 //key_down_copy = true;
-                CADctrl.key_down_copy = true;
-                CADctrl.key_down_move = false;
-                CADctrl.key_down_del = false;
+                CADctrl_frame.key_down_copy = true;
+                CADctrl_frame.key_down_move = false;
+                CADctrl_frame.key_down_del = false;
                 return;
             }
             if (e.Key == Key.M)
             {
 
-                CADctrl.key_down_copy = false;
-                CADctrl.key_down_move = true;
-                CADctrl.key_down_del = false;
+                CADctrl_frame.key_down_copy = false;
+                CADctrl_frame.key_down_move = true;
+                CADctrl_frame.key_down_del = false;
                 return;
             }
             if (e.Key == Key.Delete)
             {
-                CADctrl.key_down_copy = false;
-                CADctrl.key_down_move = false;
-                CADctrl.key_down_del = true;
-                int[] sel_keys = CADctrl.UserGetSelRects();
+                CADctrl_frame.key_down_copy = false;
+                CADctrl_frame.key_down_move = false;
+                CADctrl_frame.key_down_del = true;
+                int[] sel_keys = CADctrl_frame.UserGetSelRects();
                 foreach (int key in sel_keys)
                 {
-                    CADctrl.UserDelRect(key);
+                    CADctrl_frame.UserDelRect(key);
                 }
                 return;
             }
@@ -643,9 +691,9 @@ namespace abaqus_helper
 
         private void button1_Click(object sender, RoutedEventArgs e)
         {
-            //CADctrl.UserDelAllRects();
-            Dictionary<int, CADRect> ctrl_all_rects = CADctrl.UserGetRects();
-            int[] sel_rect_id = CADctrl.UserGetSelRects();
+            //CADctrl_frame.UserDelAllRects();
+            Dictionary<int, CADRect> ctrl_all_rects = CADctrl_frame.UserGetRects();
+            int[] sel_rect_id = CADctrl_frame.UserGetSelRects();
 
             //dataGrid_list.Clear();
             //for(int i=0;i<sel_rect_id.Length;i++)
@@ -660,24 +708,24 @@ namespace abaqus_helper
                 ctrl_all_rects[sel_rect_id[0]].m_xe = ctrl_all_rects[sel_rect_id[0]].m_xe + 100;
                 //CADRect new_rect = new CADRect(ctrl_all_rects[sel_rect_id[0]].m_xs, ctrl_all_rects[sel_rect_id[0]].m_ys, ctrl_all_rects[sel_rect_id[0]].m_xe + 100, ctrl_all_rects[sel_rect_id[0]].m_ye + 200);
                 //new_rect.m_id = ctrl_all_rects[sel_rect_id[0]].m_id;
-                this.CADctrl.UserDrawRect(ctrl_all_rects[sel_rect_id[0]]);
+                this.CADctrl_frame.UserDrawRect(ctrl_all_rects[sel_rect_id[0]]);
             }
-            //CADctrl.UserDelLine(2);
+            //CADctrl_frame.UserDelLine(2);
             return;
-            Dictionary<int, CADPoint> ctrl_all_points = CADctrl.UserGetPoints();
+            Dictionary<int, CADPoint> ctrl_all_points = CADctrl_frame.UserGetPoints();
             int col_width = 300;
             int col_height = 500;
             CADRect col = new CADRect();
-            foreach (int value in CADctrl.UserGetSelPoints())
+            foreach (int value in CADctrl_frame.UserGetSelPoints())
             {
                 col.m_xs = ctrl_all_points[value].m_x - col_width / 2;
                 col.m_ys = ctrl_all_points[value].m_y + col_width / 2;
                 col.m_xe = ctrl_all_points[value].m_x + col_width / 2;
                 col.m_ye = ctrl_all_points[value].m_y - col_width / 2;
-                CADctrl.UserDrawRect(col, 3);
+                CADctrl_frame.UserDrawRect(col, 3);
             }
-            //CADctrl.UserDrawRect(new Point(0,0),new Point(20000,10000));
-            //CADctrl.UserDrawRect(new Point(0, 0), new Point(10000, 20000));
+            //CADctrl_frame.UserDrawRect(new Point(0,0),new Point(20000,10000));
+            //CADctrl_frame.UserDrawRect(new Point(0, 0), new Point(10000, 20000));
             //CADCtrl.UserDrawLine(new Point(10000, 0), new Point(10000, 20000));
             //CADCtrl.UserDrawLine(new Point(10000, 20000), new Point(0, 20000));
             //CADCtrl.UserDrawLine(new Point(0, 20000), new Point(0, 0));
@@ -685,12 +733,12 @@ namespace abaqus_helper
 
         private void button2_Click(object sender, RoutedEventArgs e)
         {
-            CADctrl.UserDelAllLines();
+            CADctrl_frame.UserDelAllLines();
             get_x_info();
             get_y_info();
 
 
-            //CADctrl.UserDrawLine(line, 2);
+            //CADctrl_frame.UserDrawLine(line, 2);
             CADLine line = new CADLine(0, 0, 0, 0);
             int xLength = 0;
             for (int i = 0; i < x_labels.Length; i++)
@@ -709,7 +757,7 @@ namespace abaqus_helper
                 line.m_xe = line.m_xs;
                 line.m_ys = 0;
                 line.m_ye = yLength;
-                CADctrl.UserDrawLine(line, 2);
+                CADctrl_frame.UserDrawLine(line, 2);
             }
             line.m_ys = 0;
             line.m_ye = 0;
@@ -720,12 +768,12 @@ namespace abaqus_helper
                 line.m_ye = line.m_ys;
                 line.m_xs = 0;
                 line.m_xe = xLength;
-                CADctrl.UserDrawLine(line, 2);
+                CADctrl_frame.UserDrawLine(line, 2);
             }
-            CADctrl.UserDrawRect(new Point(0, 0), new Point(200, 100));
-            CADctrl.UserDrawRect(new Point(0, 0), new Point(100, 200));
+            CADctrl_frame.UserDrawRect(new Point(0, 0), new Point(200, 100));
+            CADctrl_frame.UserDrawRect(new Point(0, 0), new Point(100, 200));
 
-            CADctrl.ZoomView();
+            CADctrl_frame.ZoomView();
         }
 
         private void btn_add_concrete_Click(object sender, RoutedEventArgs e)
@@ -751,7 +799,7 @@ namespace abaqus_helper
                 concrete_input.Enqueue(int.Parse(str_splited[i]));
             }
             int[] data_concrete = concrete_input.ToArray();
-            if (data_concrete.Length >= 3 && (int)(data_concrete[0]*data_concrete[1]*data_concrete[2])>0)
+            if (data_concrete.Length >= 3 && (int)(data_concrete[0] * data_concrete[1] * data_concrete[2]) > 0)
             {
                 foreach (CADPoint value in dataGrid_sel_point)
                 {
@@ -762,7 +810,14 @@ namespace abaqus_helper
                         new_rect.m_flag = 0;
                     new_rect.m_len = data_concrete[2];
                     new_rect.UpdataWH();
-                    CADctrl.UserDrawRect(new_rect);
+                    if (!CADctrl_frame.UserDrawRect(new_rect))
+                    {
+                        this.statusBar.Content = string.Format("点{0}处添加构件失败，已有同位置同大小构件", value.m_id);
+                    }
+                    else
+                    {
+                        this.statusBar.Content = string.Format("点{0}处添加构件完成", value.m_id);
+                    }
                 }
             }
 
@@ -770,11 +825,11 @@ namespace abaqus_helper
 
         private void btn_xyz_ok_Click(object sender, RoutedEventArgs e)
         {
-            CADctrl.UserDelAllLines();
+            CADctrl_frame.UserDelAllLines();
             get_x_info();
             get_y_info();
             get_z_info();
-            
+
             CADLine line = new CADLine(0, 0, 0, 0);
             int xLength = 0;
             for (int i = 0; i < x_labels.Length; i++)
@@ -793,7 +848,7 @@ namespace abaqus_helper
                 line.m_xe = line.m_xs;
                 line.m_ys = 0;
                 line.m_ye = yLength;
-                CADctrl.UserDrawLine(line, 2);
+                CADctrl_frame.UserDrawLine(line, 2);
             }
             line.m_ys = 0;
             line.m_ye = 0;
@@ -804,15 +859,15 @@ namespace abaqus_helper
                 line.m_ye = line.m_ys;
                 line.m_xs = 0;
                 line.m_xe = xLength;
-                CADctrl.UserDrawLine(line, 2);
+                CADctrl_frame.UserDrawLine(line, 2);
             }
-            CADctrl.ZoomView();
+            CADctrl_frame.ZoomView();
 
         }
 
         private void comboBox_floor_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            
+
             if (comboBox_floor.SelectedItem == null)
                 return;
             int index = int.Parse(comboBox_floor.SelectedItem.ToString());
@@ -825,39 +880,148 @@ namespace abaqus_helper
                 if (ctrl_all_rects.Length >= cur_floor)
                 {
                     Dictionary<int, CADRect> floor_concrete = new Dictionary<int, CADRect>();
-                    foreach (int value in CADctrl.UserGetRects().Keys)
+                    foreach (int value in CADctrl_frame.UserGetRects().Keys)
                     {
-                        floor_concrete.Add(value, CADctrl.UserGetRects()[value].Copy());
+                        floor_concrete.Add(value, CADctrl_frame.UserGetRects()[value].Copy());
                     }
                     ctrl_all_rects[cur_floor - 1] = floor_concrete;
                 }
                 cur_floor = index;
- 
             }
             //if (index == 2)
             //{
             //    int i = 0;
             //}
-            if(ctrl_all_rects.Length>=index)
+            if (ctrl_all_rects.Length >= index)
             {
-                CADctrl.UserDelAllRects();
-                if (ctrl_all_rects[index-1] == null || ctrl_all_rects[index-1].Count==0)
+                CADctrl_frame.UserDelAllRects();
+                if (ctrl_all_rects[index - 1] == null || ctrl_all_rects[index - 1].Count == 0)
                 {
                     this.statusBar.Content = string.Format("第{0}层未定义构件", index);
                     return;
                 }
-                foreach(int value in ctrl_all_rects[index-1].Keys)
+                foreach (int value in ctrl_all_rects[index - 1].Keys)
                 {
-                    CADctrl.UserDrawRect(ctrl_all_rects[index-1][value]);
+                    ctrl_all_rects[index - 1][value].m_id = 0;
+                    CADctrl_frame.UserDrawRect(ctrl_all_rects[index - 1][value]);
                 }
                 //Dictionary<int, CADRect> floor_concrete = new Dictionary<int,CADRect>();
-                //foreach(int value in CADctrl.UserGetRects().Keys)
+                //foreach(int value in CADctrl_frame.UserGetRects().Keys)
                 //{
-                //    floor_concrete.Add(value, CADctrl.UserGetRects()[value].Copy());
+                //    floor_concrete.Add(value, CADctrl_frame.UserGetRects()[value].Copy());
                 //}
                 //ctrl_all_rects[index] = floor_concrete;
             }
-            
+
         }
+
+        private void btn_update_section_Click(object sender, RoutedEventArgs e)
+        {
+            
+            string section = textBox_concrete_section.Text;
+            Queue<int> concrete_section_input = new Queue<int>();
+            section = section.Replace(",", " ");
+            if (section == "")
+            {
+                //SetText("x输入值无效", this.statusBar);
+                this.statusBar.Content = "梁柱截面尺寸输入值无效";
+                return;
+            }
+
+            string[] str_splited = section.Split(' ');
+            for (int i = 0; i < str_splited.Length; i++)
+            {
+                concrete_section_input.Enqueue(int.Parse(str_splited[i]));
+            }
+            int[] data_concrete_section = concrete_section_input.ToArray();
+            if (data_concrete_section.Length >= 2 && data_concrete_section[0] * data_concrete_section[1] > 0)
+            {
+                CADctrl_rebar.UserDelAllRects();
+                CADRect new_rect = new CADRect(0, 0, data_concrete_section[0], data_concrete_section[1]);
+               
+                CADctrl_rebar.UserDrawRect(new_rect);
+                this.statusBar.Content = string.Format("梁柱尺寸更新成功");
+            }
+            else if(data_concrete_section.Length ==1 && data_concrete_section[0]> 0)
+            {
+                CADctrl_rebar.UserDelAllRects();
+                CADRect new_rect = new CADRect(0, 0, data_concrete_section[0], data_concrete_section[0]);
+
+                CADctrl_rebar.UserDrawRect(new_rect);
+                this.statusBar.Content = string.Format("梁柱尺寸更新成功");
+            }
+            //CADctrl_rebar.UserDrawRect();
+
+        }
+
+        private void btn_add_rebar_Click(object sender, RoutedEventArgs e)
+        {
+            string rebar_xy = textBox_rebar_xy.Text;
+            Queue<int> rebar_xy_input = new Queue<int>();
+            rebar_xy = rebar_xy.Replace(",", " ");
+            if (rebar_xy == "")
+            {
+                //SetText("x输入值无效", this.statusBar);
+                this.statusBar.Content = "钢筋坐标输入值无效";
+                return;
+            }
+
+            string[] str_splited = rebar_xy.Split(' ');
+            for (int i = 0; i < str_splited.Length; i++)
+            {
+                rebar_xy_input.Enqueue(int.Parse(str_splited[i]));
+            }
+            int[] data_rebar_xy = rebar_xy_input.ToArray();
+            if (data_rebar_xy.Length >= 2)
+            {
+                //CADctrl_rebar.UserDelAllRects();
+                CADPoint new_rebar = new CADPoint(data_rebar_xy[0], data_rebar_xy[1]);
+                new_rebar.m_is_rebar = 1;
+                new_rebar.m_diameter = comboBox_diameter.SelectedIndex;
+                new_rebar.m_strength =  comboBox_strength.SelectedIndex;
+                bool flag = true;
+                foreach(CADPoint value in CADctrl_rebar.UserGetPoints().Values)
+                {
+                    if (value.m_is_rebar == 1 &&
+                        Math.Sqrt((value.m_x - new_rebar.m_x) * (value.m_x - new_rebar.m_x) + (value.m_y - new_rebar.m_y) * (value.m_y - new_rebar.m_y)) <= (value.m_diameter + new_rebar.m_diameter) / 2.0)
+                    {
+                        flag = false;
+                        this.statusBar.Content = "新钢筋与其他钢筋过近，添加失败";
+                        break;
+                    }
+                }
+                if (flag)
+                {
+                    CADctrl_rebar.UserDrawPoint(new_rebar);
+                    this.statusBar.Content = string.Format("钢筋更新成功");
+                }
+            }
+            else if (data_rebar_xy.Length == 1)
+            {
+                CADPoint new_rebar = new CADPoint(data_rebar_xy[0], data_rebar_xy[0]);
+                new_rebar.m_is_rebar = 1;
+                new_rebar.m_diameter = comboBox_diameter.SelectedIndex;
+                new_rebar.m_strength = comboBox_strength.SelectedIndex;
+                bool flag = true;
+                foreach (CADPoint value in CADctrl_rebar.UserGetPoints().Values)
+                {
+                    if (value.m_is_rebar == 1 &&
+                        Math.Sqrt((value.m_x - new_rebar.m_x) * (value.m_x - new_rebar.m_x) + (value.m_y - new_rebar.m_y) * (value.m_y - new_rebar.m_y)) <= (value.m_diameter + new_rebar.m_diameter) / 2.0)
+                    {
+                        flag = false;
+                        this.statusBar.Content = "新钢筋与其他钢筋过近，添加失败";
+                        break;
+                    }
+                }
+                if (flag)
+                {
+                    CADctrl_rebar.UserDrawPoint(new_rebar);
+                    this.statusBar.Content = string.Format("钢筋更新成功");
+                }
+            }
+
+        }
+
+     
     }
 }
