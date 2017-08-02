@@ -785,10 +785,13 @@ namespace abaqus_helper.CADCtrl
                 point.m_y = this_rect.m_ye;
                 this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
-                point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
-                point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
-                this.AddPoint(point);//中心
-                pointsItems.Add(PointNumber);
+                if (isRebar != 1)
+                {
+                    point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
+                    point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
+                    this.AddPoint(point);//中心
+                    pointsItems.Add(PointNumber);
+                }
                 point.m_x = this_rect.m_xs;
                 point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
                 this.AddPoint(point);//边中点
@@ -835,10 +838,13 @@ namespace abaqus_helper.CADCtrl
                 point.m_y = this_rect.m_ye;
                 this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
-                point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
-                point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
-                this.AddPoint(point);//中心
-                pointsItems.Add(PointNumber);
+                if (isRebar != 1)
+                {
+                    point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
+                    point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
+                    this.AddPoint(point);//中心
+                    pointsItems.Add(PointNumber);
+                }
                 point.m_x = this_rect.m_xs;
                 point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
                 this.AddPoint(point);//边中点
@@ -1230,7 +1236,7 @@ namespace abaqus_helper.CADCtrl
 
                 double r = 12;
                 if (point.m_diameter > 0)
-                    r = point.m_diameter;
+                    r = 10*point.m_diameter;
                 double pi = 3.1415926;
                 int n = 20;
                 for (int i = 0; i < n; i++)
@@ -1316,7 +1322,7 @@ namespace abaqus_helper.CADCtrl
                 m_openGLCtrl.Color(0.7f, 0.2f, 0.7f);
                 double r = 12;
                 if (point.m_diameter > 0)
-                    r = point.m_diameter;
+                    r = 10*point.m_diameter;
                 double pi = 3.1415926;
                 int n = 20;
                 for (int i = 0; i < n; i++)
@@ -1823,6 +1829,13 @@ namespace abaqus_helper.CADCtrl
             this.DelRect(rect_id);
         }
 
+        public void UserDelPoint(int point_id)
+        {
+            if (this.SelPoints.ContainsKey(point_id) && SelPoints[point_id].m_is_rebar==1)
+                this.SelPoints.Remove(point_id);
+            if (this.AllPoints.ContainsKey(point_id) && AllPoints[point_id].m_is_rebar == 1)
+                this.AllPoints.Remove(point_id);
+        }
 
         public bool UserDrawRect(Point p1, Point p2, int color_id = 0)
         {
@@ -1852,6 +1865,11 @@ namespace abaqus_helper.CADCtrl
         public void UserSelRect(int id)
         {
             this.SelRect(id);
+        }
+
+        public void UserSelPoint(int id)
+        {
+            this.SelPoint(id);
         }
 
         public int[] UserGetSelLines()
@@ -1906,7 +1924,7 @@ namespace abaqus_helper.CADCtrl
             m_center_offset.Y = -(m_border.m_ye - m_border.m_ys) / 2 * m_pixaxis * m_scale;
         }
 
-        public void RectToESC()
+        public void ReactToESC()
         {
             if (!key_down_move && !key_down_copy)
             {
@@ -2156,8 +2174,8 @@ namespace abaqus_helper.CADCtrl
             m_x = 0.0f;
             m_y = 0.0f;
             m_is_rebar = 0;
-            m_diameter = 0;
-            m_strength = 0;
+            m_diameter = -1;
+            m_strength = -1;
         }
 
 
@@ -2166,8 +2184,8 @@ namespace abaqus_helper.CADCtrl
             m_x = (float)x;
             m_y = (float)y;
             m_is_rebar = 0;
-            m_diameter = 0;
-            m_strength = 0;
+            m_diameter = -1;
+            m_strength = -1;
         }
 
         public CADPoint Copy()

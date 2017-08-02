@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,6 +20,34 @@ using System.Collections.ObjectModel;
 namespace abaqus_helper
 {
     /// <summary>
+    /// 钢筋强度枚举
+    /// </summary>
+    public enum RebarStrength
+    {
+        HPB235,
+        HRB335,
+        HRB400,
+        RRB400,
+    };
+    
+    /// <summary>
+    /// 钢筋直径枚举
+    /// </summary>
+    //public enum RebarDiameter
+    //{
+    //    D6,
+    //    D6.5,
+    //    D8,
+    //    D12,
+    //    D14,
+    //    D16,
+    //    D18,
+    //    D20,
+    //    D22,
+    //    D25,
+    //    D28,
+    //};
+    /// <summary>
     /// MainWindow.xaml 的交互逻辑
     /// </summary>
     public partial class MainWindow : Window
@@ -36,6 +65,7 @@ namespace abaqus_helper
         public ObservableCollection<CADPoint> dataGrid_sel_rebar = null;
         public CADRect m_edit_cell = null;
         public CADRect m_add_rect = null;
+        public CADPoint m_edit_rebar = null;
         public int m_cur_cell_val = 0;
         public string m_cur_col_name = "";
         private bool key_down_esc = false;
@@ -82,6 +112,7 @@ namespace abaqus_helper
             comboBox_diameter.Items.Add("6");
             comboBox_diameter.Items.Add("6.5");
             comboBox_diameter.Items.Add("8");
+            comboBox_diameter.Items.Add("10");
             comboBox_diameter.Items.Add("12");
             comboBox_diameter.Items.Add("14");
             comboBox_diameter.Items.Add("16");
@@ -96,6 +127,8 @@ namespace abaqus_helper
             
 
         }
+
+        
 
         private void InitializeBackgroundWorker()
         {
@@ -653,7 +686,8 @@ namespace abaqus_helper
             if (e.Key == Key.Escape)
             {
                 key_down_esc = true;
-                CADctrl_frame.RectToESC();
+                CADctrl_frame.ReactToESC();
+                CADctrl_rebar.ReactToESC();
             }
             if (e.Key == Key.C)
             {
@@ -682,6 +716,15 @@ namespace abaqus_helper
                 {
                     CADctrl_frame.UserDelRect(key);
                 }
+                CADctrl_frame.key_down_del = false;
+
+                CADctrl_rebar.key_down_del = true;
+                int[] sel_rebar_keys = CADctrl_rebar.UserGetSelPoints();
+                foreach (int key in sel_rebar_keys)
+                {
+                        CADctrl_rebar.UserDelPoint(key);
+                }
+                CADctrl_frame.key_down_del = false;
                 return;
             }
 
@@ -979,6 +1022,18 @@ namespace abaqus_helper
                 new_rebar.m_is_rebar = 1;
                 new_rebar.m_diameter = comboBox_diameter.SelectedIndex;
                 new_rebar.m_strength =  comboBox_strength.SelectedIndex;
+                foreach (CADPoint value in CADctrl_rebar.UserGetPoints().Values)
+                {
+                    if (value.m_is_rebar == 1 &&
+                        ((int)(value.m_x - new_rebar.m_x))==0&&
+                        ((int)(value.m_y - new_rebar.m_y))==0)
+                    {
+                        new_rebar.m_id = value.m_id;
+                        CADctrl_rebar.UserDrawPoint(new_rebar);
+                        this.statusBar.Content = string.Format("钢筋更新成功");
+                        return;
+                    }
+                }
                 bool flag = true;
                 foreach(CADPoint value in CADctrl_rebar.UserGetPoints().Values)
                 {
@@ -993,7 +1048,7 @@ namespace abaqus_helper
                 if (flag)
                 {
                     CADctrl_rebar.UserDrawPoint(new_rebar);
-                    this.statusBar.Content = string.Format("钢筋更新成功");
+                    this.statusBar.Content = string.Format("钢筋添加成功");
                 }
             }
             else if (data_rebar_xy.Length == 1)
@@ -1002,6 +1057,18 @@ namespace abaqus_helper
                 new_rebar.m_is_rebar = 1;
                 new_rebar.m_diameter = comboBox_diameter.SelectedIndex;
                 new_rebar.m_strength = comboBox_strength.SelectedIndex;
+                foreach (CADPoint value in CADctrl_rebar.UserGetPoints().Values)
+                {
+                    if (value.m_is_rebar == 1 &&
+                        ((int)(value.m_x - new_rebar.m_x)) == 0 &&
+                        ((int)(value.m_y - new_rebar.m_y)) == 0)
+                    {
+                        new_rebar.m_id = value.m_id;
+                        CADctrl_rebar.UserDrawPoint(new_rebar);
+                        this.statusBar.Content = string.Format("钢筋更新成功");
+                        return;
+                    }
+                }
                 bool flag = true;
                 foreach (CADPoint value in CADctrl_rebar.UserGetPoints().Values)
                 {
@@ -1016,12 +1083,163 @@ namespace abaqus_helper
                 if (flag)
                 {
                     CADctrl_rebar.UserDrawPoint(new_rebar);
-                    this.statusBar.Content = string.Format("钢筋更新成功");
+                    this.statusBar.Content = string.Format("钢筋添加成功");
                 }
             }
 
         }
 
+        private void dataGrid_rebar_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
+        {//m_edit_rebar
+            Dictionary<int, CADRect> beam = this.CADctrl_rebar.UserGetRects();
+            if (!beam.ContainsKey(1))
+            {
+                this.statusBar.Content = "截面未定义";
+                return;
+            }
+            key_down_esc = false;
+            m_cur_col_name = e.Column.Header.ToString();
+            switch (m_cur_col_name)
+            {
+                case "X":
+                    {
+                        m_cur_cell_val = int.Parse((e.Column.GetCellContent(e.Row) as TextBlock).Text);
+                    }break;
+                case "Y":
+                    {
+                        m_cur_cell_val = int.Parse((e.Column.GetCellContent(e.Row) as TextBlock).Text);
+                    } break;
+                case "直径":
+                    {
+                        m_cur_cell_val = (e.Column.GetCellContent(e.Row) as ComboBox).SelectedIndex;
+                    } break;
+                case "强度":
+                    {
+                        m_cur_cell_val = (e.Column.GetCellContent(e.Row) as ComboBox).SelectedIndex;
+                    } break;
+                default:break;
+            }
+            int rebar_id = int.Parse((dataGrid_rebar.Columns[0].GetCellContent(dataGrid_rebar.Items[e.Row.GetIndex()]) as TextBlock).Text);
+            for (int i = 0; i < dataGrid_sel_rebar.Count; i++)
+            {
+                if (dataGrid_sel_rebar[i].m_is_rebar==1 && dataGrid_sel_rebar[i].m_id == rebar_id)
+                {
+                    m_edit_rebar = dataGrid_sel_rebar[i].Copy();
+                    break;
+                }
+            }
+
+        }
+
+        private void dataGrid_rebar_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            if (!key_down_esc && m_edit_rebar != null)
+            {
+                int cell_val = m_cur_cell_val;
+                switch (m_cur_col_name)
+                {
+                    case "X":
+                        {
+                            if (int.TryParse((e.EditingElement as TextBox).Text, out cell_val))
+                                m_edit_rebar.m_x = cell_val;
+                            else
+                                m_edit_rebar.m_x = m_cur_cell_val;
+                        } break;
+                    case "Y":
+                        {
+                            if (int.TryParse((e.EditingElement as TextBox).Text, out cell_val))
+                                m_edit_rebar.m_y = cell_val;
+                            else
+                                m_edit_rebar.m_y = m_cur_cell_val;
+                        } break;
+                    case "直径":
+                        {
+                            cell_val = (e.Column.GetCellContent(e.Row) as ComboBox).SelectedIndex;
+                            if (cell_val >= 0)
+                                m_edit_rebar.m_diameter = cell_val;
+                            else
+                                m_edit_rebar.m_diameter = m_cur_cell_val;
+                        } break;
+                    case "强度":
+                        {
+                            cell_val = (e.Column.GetCellContent(e.Row) as ComboBox).SelectedIndex;
+                            if (cell_val >= 0)
+                                m_edit_rebar.m_strength = cell_val;
+                            else
+                                m_edit_rebar.m_strength = m_cur_cell_val;
+                        } break;
+                    default: break;
+                }
+                bool flag = true;
+                foreach (CADPoint value in CADctrl_rebar.UserGetPoints().Values)
+                {
+                    if (m_edit_rebar.m_is_rebar != 1)
+                        break;
+                    if (value.m_is_rebar == 1 && value.m_id == m_edit_rebar.m_id)
+                        continue;
+
+                    if (value.m_is_rebar == 1 &&
+                        ((int)(value.m_x - m_edit_rebar.m_x)) == 0 &&
+                        ((int)(value.m_y - m_edit_rebar.m_y)) == 0)
+                    {
+                        flag = false;
+                        this.statusBar.Content = string.Format("钢筋无法重复布置");
+                        break;
+                    }
+                    if (value.m_is_rebar == 1 &&
+                        Math.Sqrt((value.m_x - m_edit_rebar.m_x) * (value.m_x - m_edit_rebar.m_x) + (value.m_y - m_edit_rebar.m_y) * (value.m_y - m_edit_rebar.m_y)) <= (value.m_diameter + m_edit_rebar.m_diameter) / 2.0)
+                    {
+                        flag = false;
+                        this.statusBar.Content = "新钢筋与其他钢筋过近，修改失败";
+                        break;
+                    }
+                    Dictionary<int, CADRect>  beam = this.CADctrl_rebar.UserGetRects();
+                    if (beam.ContainsKey(1))
+                    {
+                        if (m_edit_rebar.m_x + m_edit_rebar.m_diameter / 2 >= beam[1].m_width ||
+                            m_edit_rebar.m_x - m_edit_rebar.m_diameter / 2 <= 0 ||
+                            m_edit_rebar.m_y + m_edit_rebar.m_diameter / 2 >= beam[1].m_height ||
+                            m_edit_rebar.m_y - m_edit_rebar.m_diameter / 2 <= 0)
+                        {
+                            flag = false;
+                            this.statusBar.Content = "钢筋必须在截面内，添加失败";
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        flag = false;
+                        this.statusBar.Content = "截面未定义";
+                        break;
+                    }
+                }
+
+                if (flag && m_edit_rebar.m_is_rebar == 1)
+                {
+                    this.CADctrl_rebar.UserDrawPoint(m_edit_rebar);
+                    this.CADctrl_rebar.UserSelPoint(m_edit_rebar.m_id);
+                    this.CADctrl_rebar.UserSelPoint(m_edit_rebar.m_id);
+                    //dataGrid_rebar.ItemsSource = this.CADctrl_rebar.m_sel_point_list;
+                }
+            } 
+            m_edit_rebar = null;
+            m_cur_col_name = "";
+            m_cur_cell_val = 0;
+            key_down_esc = false;
+        }
+
+        private void comboBox_rebar_style_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
+
+        private void btn_add_section_Click(object sender, RoutedEventArgs e)
+        {
+            //此处集合CAD中的矩形大小，钢筋位置及钢筋强度直径，需规划好结构体
+            //一旦确定将在comboBox_rebar_style(钢筋布置下拉框中添加或者更新style集合，最终梁柱只索引集合的键值即可)
+        }
+
+        
      
     }
 }
