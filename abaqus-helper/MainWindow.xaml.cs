@@ -16,6 +16,7 @@ using System.ComponentModel;
 using System.Windows.Threading;
 using abaqus_helper.CADCtrl;
 using System.Collections.ObjectModel;
+using System.Data;
 
 namespace abaqus_helper
 {
@@ -65,11 +66,13 @@ namespace abaqus_helper
         public ObservableCollection<CADPoint> dataGrid_sel_rebar = null;
         public CADRect m_edit_cell = null;
         public CADRect m_add_rect = null;
+        public CADRect m_sel_rect = null; 
         public CADPoint m_edit_rebar = null;
         public int m_cur_cell_val = 0;
         public string m_cur_col_name = "";
         private bool key_down_esc = false;
         Dictionary<int, CADRect>[] ctrl_all_rects = null;
+        Dictionary<string, object[]> all_section_set = null;//键值为section名称，真值为一个序列，序列第一个是CADRect即截面矩形，而后是CADPoint即钢筋
         private int cur_floor;
 
         //private bool key_down_copy = false;
@@ -102,11 +105,13 @@ namespace abaqus_helper
             comboBox_concrete.Items.Add("C40");
             comboBox_concrete.Items.Add("C50");
             comboBox_concrete.Items.Add("C60");
+            comboBox_concrete.SelectedIndex = 0;
 
             comboBox_strength.Items.Add("HPB235");
             comboBox_strength.Items.Add("HRB335");
             comboBox_strength.Items.Add("HRB400");
             comboBox_strength.Items.Add("RRB400");
+            comboBox_strength.SelectedIndex = 0;
 
 
             comboBox_diameter.Items.Add("6");
@@ -121,6 +126,7 @@ namespace abaqus_helper
             comboBox_diameter.Items.Add("22");
             comboBox_diameter.Items.Add("25");
             comboBox_diameter.Items.Add("28");
+            comboBox_diameter.SelectedIndex = 0;
             #endregion
             CADctrl_rebar.isRebar = 1;
             CADctrl_rebar.m_scale = 0.05;
@@ -475,52 +481,67 @@ namespace abaqus_helper
             {
                 int cell_val = m_cur_cell_val;
 
-                if (int.TryParse((e.EditingElement as TextBox).Text, out cell_val))
-                {
+                
                     switch (m_cur_col_name)
                     {
                         case "ID":
                             { } break;
                         case "起点X":
                             {
-                                m_edit_cell.m_xs = cell_val;
+                                if (int.TryParse((e.EditingElement as TextBox).Text, out cell_val))
+                                    m_edit_cell.m_xs = cell_val;
                             } break;
                         case "起点Y":
                             {
-                                m_edit_cell.m_ys = cell_val;
+                                if (int.TryParse((e.EditingElement as TextBox).Text, out cell_val))
+                                    m_edit_cell.m_ys = cell_val;
                             } break;
                         case "终点X":
                             {
-                                m_edit_cell.m_xe = cell_val;
+                                if (int.TryParse((e.EditingElement as TextBox).Text, out cell_val))
+                                    m_edit_cell.m_xe = cell_val;
                             } break;
                         case "终点Y":
                             {
-                                m_edit_cell.m_ye = cell_val;
+                                if (int.TryParse((e.EditingElement as TextBox).Text, out cell_val))
+                                    m_edit_cell.m_ye = cell_val;
                             } break;
                         case "是柱":
                             {
-                                if (cell_val != 0)
+                                if ((bool)(e.EditingElement as CheckBox).IsChecked)
                                     m_edit_cell.m_flag = 1;
                                 else
                                     m_edit_cell.m_flag = 0;
+
+                                //if (cell_val != 0)
+                                //    m_edit_cell.m_flag = 1;
+                                //else
+                                //    m_edit_cell.m_flag = 0;
                             } break;
                         case "宽度":
                             {
-                                m_edit_cell.m_width = cell_val;
-                                Point center = new Point((m_edit_cell.m_xs + m_edit_cell.m_xe) / 2, (m_edit_cell.m_ys + m_edit_cell.m_ye) / 2);
-                                m_edit_cell.m_xs = (float)center.X - cell_val / 2;
-                                m_edit_cell.m_xe = (float)center.X + cell_val / 2;
+                                if (int.TryParse((e.EditingElement as TextBox).Text, out cell_val))
+                                {
+                                    m_edit_cell.m_width = cell_val;
+                                    Point center = new Point((m_edit_cell.m_xs + m_edit_cell.m_xe) / 2, (m_edit_cell.m_ys + m_edit_cell.m_ye) / 2);
+                                    m_edit_cell.m_xs = (float)center.X - cell_val / 2;
+                                    m_edit_cell.m_xe = (float)center.X + cell_val / 2;
+                                }
                             } break;
                         case "高度":
                             {
-                                m_edit_cell.m_height = cell_val;
-                                Point center = new Point((m_edit_cell.m_xs + m_edit_cell.m_xe) / 2, (m_edit_cell.m_ys + m_edit_cell.m_ye) / 2);
-                                m_edit_cell.m_ys = (float)center.Y - cell_val / 2;
-                                m_edit_cell.m_ye = (float)center.Y + cell_val / 2;
+                                if (int.TryParse((e.EditingElement as TextBox).Text, out cell_val))
+                                {
+                                    m_edit_cell.m_height = cell_val;
+                                    Point center = new Point((m_edit_cell.m_xs + m_edit_cell.m_xe) / 2, (m_edit_cell.m_ys + m_edit_cell.m_ye) / 2);
+                                    m_edit_cell.m_ys = (float)center.Y - cell_val / 2;
+                                    m_edit_cell.m_ye = (float)center.Y + cell_val / 2;
+                                }
                             } break;
                         case "深度":
                             {
-                                m_edit_cell.m_len = cell_val;
+                                if (int.TryParse((e.EditingElement as TextBox).Text, out cell_val))
+                                    m_edit_cell.m_len = cell_val;
                             } break;
                         default:
                             break;
@@ -530,7 +551,7 @@ namespace abaqus_helper
                         m_edit_cell.UpdataWH();
                         this.CADctrl_frame.UserDrawRect(m_edit_cell);
                     }
-                }
+               
             }
             m_edit_cell = null;
             m_cur_col_name = "";
@@ -541,17 +562,27 @@ namespace abaqus_helper
         private void dataGrid_sel_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
         {
             key_down_esc = false;
+            m_cur_col_name = e.Column.Header.ToString();
             //CADctrl_frame.key_down_esc = false;
-            m_cur_cell_val = int.Parse((e.Column.GetCellContent(e.Row) as TextBlock).Text);
+            if (m_cur_col_name == "是柱")
+            {
+                if ((bool)(e.Column.GetCellContent(e.Row) as CheckBox).IsChecked)
+                    m_cur_cell_val = 1;
+                else
+                    m_cur_cell_val = 0;
+            }
+            else
+            {
+                m_cur_cell_val = int.Parse((e.Column.GetCellContent(e.Row) as TextBlock).Text);
+            }
             if (m_cur_cell_val == 0)
                 m_cur_cell_val = 68;
-            m_cur_col_name = e.Column.Header.ToString();
             int rect_id = int.Parse((dataGrid_sel.Columns[0].GetCellContent(dataGrid_sel.Items[e.Row.GetIndex()]) as TextBlock).Text);
             for (int i = 0; i < dataGrid_list.Count; i++)
             {
                 if (dataGrid_list[i].m_id == rect_id)
                 {
-                    m_edit_cell = dataGrid_list[i];
+                    m_edit_cell = dataGrid_list[i].Copy();
                     break;
                 }
             }
@@ -851,6 +882,11 @@ namespace abaqus_helper
                         new_rect.m_flag = 1;
                     else
                         new_rect.m_flag = 0;
+                    new_rect.m_concrete = comboBox_concrete.SelectedIndex;
+                    if (comboBox_rebar_style.SelectedIndex==-1)
+                        new_rect.m_rebar = "";
+                    else
+                        new_rect.m_rebar = comboBox_rebar_style.SelectedValue.ToString();
                     new_rect.m_len = data_concrete[2];
                     new_rect.UpdataWH();
                     if (!CADctrl_frame.UserDrawRect(new_rect))
@@ -979,16 +1015,26 @@ namespace abaqus_helper
             int[] data_concrete_section = concrete_section_input.ToArray();
             if (data_concrete_section.Length >= 2 && data_concrete_section[0] * data_concrete_section[1] > 0)
             {
-                CADctrl_rebar.UserDelAllRects();
-                CADRect new_rect = new CADRect(0, 0, data_concrete_section[0], data_concrete_section[1]);
+                CADRect new_rect = null;
+                if (CADctrl_rebar.UserGetRects().Count == 0)
+                    new_rect = new CADRect();
+                else
+                    new_rect = CADctrl_rebar.UserGetRects().ElementAt(0).Value.Copy();
+                new_rect.m_xe = data_concrete_section[0];
+                new_rect.m_ye = data_concrete_section[1];
                
                 CADctrl_rebar.UserDrawRect(new_rect);
                 this.statusBar.Content = string.Format("梁柱尺寸更新成功");
             }
             else if(data_concrete_section.Length ==1 && data_concrete_section[0]> 0)
             {
-                CADctrl_rebar.UserDelAllRects();
-                CADRect new_rect = new CADRect(0, 0, data_concrete_section[0], data_concrete_section[0]);
+                CADRect new_rect = null;
+                if (CADctrl_rebar.UserGetRects().Count == 0)
+                    new_rect = new CADRect();
+                else
+                    new_rect = CADctrl_rebar.UserGetRects().ElementAt(0).Value.Copy();
+                new_rect.m_xe = data_concrete_section[0];
+                new_rect.m_ye = data_concrete_section[0];
 
                 CADctrl_rebar.UserDrawRect(new_rect);
                 this.statusBar.Content = string.Format("梁柱尺寸更新成功");
@@ -1230,6 +1276,28 @@ namespace abaqus_helper
 
         private void comboBox_rebar_style_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            string select_name = comboBox_rebar_style.SelectedValue.ToString();
+            object[] select_section_info = null;
+            if(all_section_set.ContainsKey(select_name))
+                select_section_info = all_section_set[select_name];
+            if (select_section_info.Length > 0)
+            {
+                this.CADctrl_rebar.UserDelAllRects();
+                this.CADctrl_rebar.UserDelAllPoints();
+            }
+            else
+                return;
+            for (int i = 0; i < select_section_info.Length; i++)
+            {
+                if (i == 0)
+                {
+                    this.CADctrl_rebar.UserDrawRect((CADRect)select_section_info[i]);
+                    this.textBox_section_name.Text = comboBox_rebar_style.SelectedValue.ToString();
+                    this.textBox_concrete_section.Text = string.Format("{0} {1}", ((CADRect)select_section_info[i]).m_width, ((CADRect)select_section_info[i]).m_height);
+                }
+                else
+                    this.CADctrl_rebar.UserDrawPoint((CADPoint)select_section_info[i]);
+            }
 
         }
 
@@ -1237,6 +1305,136 @@ namespace abaqus_helper
         {
             //此处集合CAD中的矩形大小，钢筋位置及钢筋强度直径，需规划好结构体
             //一旦确定将在comboBox_rebar_style(钢筋布置下拉框中添加或者更新style集合，最终梁柱只索引集合的键值即可)
+            string section_name = "";
+            if (textBox_section_name.Text.Replace(" ", "") == "")
+            {
+                this.statusBar.Content = "截面名称不能为空";
+                return;
+            }
+            else
+                section_name = textBox_section_name.Text;
+            
+            if (this.CADctrl_rebar.UserGetRects().Count == 0)
+            {
+                this.statusBar.Content = "请确定截面";
+                return;
+            }
+            CADRect section_rect = this.CADctrl_rebar.UserGetRects().ElementAt(0).Value;
+            int rebar_count = 0;
+            foreach(CADPoint value in this.CADctrl_rebar.UserGetPoints().Values)
+            {
+                if (value.m_is_rebar != 1)
+                    continue;
+                if (value.m_x + value.m_diameter / 2 >= section_rect.m_width ||
+                            value.m_x - value.m_diameter / 2 <= 0 ||
+                            value.m_y + value.m_diameter / 2 >= section_rect.m_height ||
+                            value.m_y - value.m_diameter / 2 <= 0)
+                {
+                    this.statusBar.Content = "有钢筋不在截面内，保存失败";
+                    return;
+                }
+                if(value.m_is_rebar==1)
+                    rebar_count++;
+            }
+            object[] section_info = new object[rebar_count+1];
+            section_info[0] = section_rect.Copy();
+            rebar_count=0;
+            foreach(CADPoint value in this.CADctrl_rebar.UserGetPoints().Values)
+            {
+                if(value.m_is_rebar==1)
+                {
+                    rebar_count++;
+                    section_info[rebar_count]=value.Copy();
+                }
+            }
+            if (all_section_set == null)
+            {
+                all_section_set = new Dictionary<string, object[]>();
+            }
+            if (all_section_set.ContainsKey(section_name))
+                all_section_set[section_name] = section_info;
+            else
+            {
+                all_section_set.Add(section_name, section_info);
+                comboBox_rebar_style.Items.Add(section_name);
+                comboBox_rebar_style.SelectedIndex = comboBox_rebar_style.Items.Count - 1;
+            }
+        }
+
+        private void dataGrid_sel_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            //int row_id = int.Parse((e.Column.GetCellContent(e.Row) as TextBlock).Text);
+            m_sel_rect = (CADRect)dataGrid_sel.SelectedItem;
+            if (m_sel_rect != null)
+            {
+                m_sel_rect = ((CADRect)dataGrid_sel.SelectedItem).Copy();
+                btn_concrete_update.Content = string.Format("更新{0}", m_sel_rect.m_id);
+                textBox_concrete.Text = string.Format("{0} {1} {2}", m_sel_rect.m_width, m_sel_rect.m_height, m_sel_rect.m_len);
+                if (m_sel_rect.m_flag == 1)
+                {
+                    radio_col.IsChecked = true;
+                    radio_beam.IsChecked = false;
+                }
+                else
+                {
+                    radio_col.IsChecked = false;
+                    radio_beam.IsChecked = true;
+                }
+                comboBox_concrete.SelectedIndex = m_sel_rect.m_concrete;
+                if (m_sel_rect.m_rebar == "")
+                    comboBox_rebar_style.SelectedIndex = -1;
+                else
+                    comboBox_rebar_style.SelectedValue = m_sel_rect.m_rebar;
+            }
+            else
+                btn_concrete_update.Content = "更新";
+        }
+
+        private void btn_concrete_update_Click(object sender, RoutedEventArgs e)
+        {
+            if (m_sel_rect == null)
+            {
+                this.statusBar.Content = "没有可更新构件";
+                return;
+            }
+            string concrete = textBox_concrete.Text;
+            Queue<int> concrete_input = new Queue<int>();
+            concrete = concrete.Replace(",", " ");
+            if (concrete == "")
+            {
+                //SetText("x输入值无效", this.statusBar);
+                this.statusBar.Content = "梁柱构件尺寸输入值无效";
+                return;
+            }
+            
+            string[] str_splited = concrete.Split(' ');
+            for (int i = 0; i < str_splited.Length; i++)
+            {
+                concrete_input.Enqueue(int.Parse(str_splited[i]));
+            }
+            int[] data_concrete = concrete_input.ToArray();
+            if (data_concrete.Length >= 3 && (int)(data_concrete[0] * data_concrete[1] * data_concrete[2]) > 0)
+            {
+                m_sel_rect.m_xe = m_sel_rect.m_xs + data_concrete[0];
+                m_sel_rect.m_ye = m_sel_rect.m_ys + data_concrete[1];
+                m_sel_rect.m_len = data_concrete[2];
+                //CADRect new_rect = new CADRect(value.m_x, value.m_y, value.m_x + data_concrete[0], value.m_y + data_concrete[1]);
+                    if (radio_col.IsChecked == true)
+                        m_sel_rect.m_flag = 1;
+                    else
+                        m_sel_rect.m_flag = 0;
+                    m_sel_rect.m_concrete = comboBox_concrete.SelectedIndex;
+                    if (comboBox_rebar_style.SelectedIndex == -1)
+                        m_sel_rect.m_rebar = "";
+                    else
+                        m_sel_rect.m_rebar = comboBox_rebar_style.SelectedValue.ToString();
+                    m_sel_rect.UpdataWH();
+                    this.statusBar.Content = string.Format("构件{0}更新完成", m_sel_rect.m_id);
+                    this.CADctrl_frame.UserDrawRect(m_sel_rect);
+                    
+                   
+             
+            }
         }
 
         

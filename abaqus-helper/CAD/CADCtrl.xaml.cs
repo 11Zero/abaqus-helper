@@ -826,37 +826,45 @@ namespace abaqus_helper.CADCtrl
                 List<int> pointsItems = new List<int>();
                 this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
+                point = new CADPoint();
                 point.m_x = this_rect.m_xs;
                 point.m_y = this_rect.m_ye;
                 this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
+                point = new CADPoint();
                 point.m_x = this_rect.m_xe;
                 point.m_y = this_rect.m_ys;
                 this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
+                point = new CADPoint();
                 point.m_x = this_rect.m_xe;
                 point.m_y = this_rect.m_ye;
                 this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
                 if (isRebar != 1)
                 {
+                    point = new CADPoint();
                     point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
                     point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
                     this.AddPoint(point);//中心
                     pointsItems.Add(PointNumber);
                 }
+                point = new CADPoint();
                 point.m_x = this_rect.m_xs;
                 point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
                 this.AddPoint(point);//边中点
                 pointsItems.Add(PointNumber);
+                point = new CADPoint();
                 point.m_x = this_rect.m_xe;
                 point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
                 this.AddPoint(point);//边中点
                 pointsItems.Add(PointNumber);
+                point = new CADPoint();
                 point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
                 point.m_y = this_rect.m_ys;
                 this.AddPoint(point);//边中点
                 pointsItems.Add(PointNumber);
+                point = new CADPoint();
                 point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
                 point.m_y = this_rect.m_ye;
                 this.AddPoint(point);//边中点
@@ -937,6 +945,8 @@ namespace abaqus_helper.CADCtrl
             {
                 foreach (int value in AllRects.Keys)
                 {
+                    if (value == this_rect.m_id)
+                        continue;
                     CADRect cur_this_rect = AllRects[value];
                     CADLine this_rect_line = new CADLine();
                     this_rect_line.m_xs = this_rect.m_xs;
@@ -1373,7 +1383,10 @@ namespace abaqus_helper.CADCtrl
 
         private void DrawText(string text, Point pos)
         {
-            m_openGLCtrl.DrawText((int)(pos.X), (int)(pos.Y), 0.5f, 1.0f, 0.5f, "Lucida Console", 12.0f, text);
+            float font_size = 12.0f;
+            if (isRebar == 1)
+                font_size = 8.0f;
+            m_openGLCtrl.DrawText((int)(pos.X), (int)(pos.Y), 0.5f, 1.0f, 0.5f, "Lucida Console", font_size, text);
         }
 
         private void DrawGrids()
@@ -1837,6 +1850,15 @@ namespace abaqus_helper.CADCtrl
                 this.AllPoints.Remove(point_id);
         }
 
+        public void UserDelAllPoints()
+        {
+            this.SelPoints.Clear();
+            this.AllPoints.Clear();
+            PointNumber = 1;
+            this.AllPoints.Add(PointNumber,new CADPoint());
+            
+        }
+
         public bool UserDrawRect(Point p1, Point p2, int color_id = 0)
         {
             //CADLine line = new CADLine(p1, p2);
@@ -2077,7 +2099,7 @@ namespace abaqus_helper.CADCtrl
         public int m_flag { get; set; }//梁柱标志，0表示梁，1表示柱
         public float m_width { get; set; }
         public float m_height { get; set; }
-        public int m_rebar { get; set; }//钢筋布置索引，编号意味着对应1好钢筋图
+        public string m_rebar { get; set; }//钢筋布置索引，编号意味着对应1好钢筋图
         public int m_concrete { get; set; }//混凝土等级索引，需要预定义好
         public CADRect()
         {
@@ -2089,7 +2111,7 @@ namespace abaqus_helper.CADCtrl
             m_ye = 0.0f;
             m_len = 0.0f;
             m_flag = 1;
-            m_rebar = 0;
+            m_rebar = "";
             m_concrete = 0;
             m_width = Math.Abs(m_xs - m_xe);
             m_height = Math.Abs(m_ys - m_ye);
@@ -2105,7 +2127,7 @@ namespace abaqus_helper.CADCtrl
             m_ye = (float)p2.Y;
             m_len = 0.0f;
             m_flag = flag;
-            m_rebar = 0;
+            m_rebar = "";
             m_concrete = 0;
             m_width = Math.Abs(m_xs - m_xe);
             m_height = Math.Abs(m_ys - m_ye);
@@ -2121,7 +2143,7 @@ namespace abaqus_helper.CADCtrl
             m_ye = (float)ye;
             m_len = 0.0f;
             m_flag = flag;
-            m_rebar = 0;
+            m_rebar = "";
             m_concrete = 0;
             m_width = Math.Abs(m_xs - m_xe);
             m_height = Math.Abs(m_ys - m_ye);
