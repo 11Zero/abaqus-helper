@@ -36,7 +36,7 @@
             <ProgressBar Height="21" Name="progressBar"  VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="128" />
         </DockPanel>
         <Button Content="画矩形" Height="29" HorizontalAlignment="Left" Margin="121,555,0,0" Name="button1" VerticalAlignment="Top" Width="120" Click="button1_Click" />
-        <Button Content="画轴网" Height="29" HorizontalAlignment="Left" Margin="6,555,0,0" Name="button2" VerticalAlignment="Top" Width="97" Click="button2_Click" />
+        <Button Content="导出py" Height="29" HorizontalAlignment="Left" Margin="6,555,0,0" Name="btn_output" VerticalAlignment="Top" Width="97" Click="btn_output_Click" />
         <DataGrid  AutoGenerateColumns="False" CanUserDeleteRows="False" CanUserAddRows="False" ItemsSource="{Binding}" Height="200" HorizontalAlignment="Left" Margin="670,396,0,0" Name="dataGrid_sel" VerticalAlignment="Top" Width="508" SelectedCellsChanged="dataGrid_sel_SelectedCellsChanged" CellEditEnding="dataGrid_sel_CellEditEnding" BeginningEdit="dataGrid_sel_BeginningEdit" KeyDown="dataGrid_sel_KeyDown" DataContext="{Binding}" SelectionChanged="dataGrid_sel_SelectionChanged">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="ID" IsReadOnly="True" Width="30" HeaderStyle="{StaticResource headerCenterStyle}" ElementStyle="{StaticResource contentCenterStyle}"  Binding="{Binding m_id}"/>
@@ -49,7 +49,7 @@
                 <DataGridTextColumn Header="宽度" Width="50" HeaderStyle="{StaticResource headerCenterStyle}" ElementStyle="{StaticResource contentCenterStyle}" Binding="{Binding m_width}"/>
                 <DataGridTextColumn Header="高度" Width="50" HeaderStyle="{StaticResource headerCenterStyle}" ElementStyle="{StaticResource contentCenterStyle}" Binding="{Binding m_height}"/>
                 <DataGridTextColumn Header="深度" Width="50" HeaderStyle="{StaticResource headerCenterStyle}" ElementStyle="{StaticResource contentCenterStyle}" Binding="{Binding m_len}"/>
-                <DataGridTextColumn Header="钢筋" Width="50" HeaderStyle="{StaticResource headerCenterStyle}" ElementStyle="{StaticResource contentCenterStyle}" Binding="{Binding m_rebar}"/>
+                <DataGridTextColumn Header="截面" IsReadOnly="True" Width="50" HeaderStyle="{StaticResource headerCenterStyle}" ElementStyle="{StaticResource contentCenterStyle}" Binding="{Binding m_rebar}"/>
             </DataGrid.Columns>
         </DataGrid>
         <DataGrid AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" Height="200" HorizontalAlignment="Left" ItemsSource="{Binding}" Margin="526,396,0,0" Name="dataGrid_new" VerticalAlignment="Top" Width="138" DataContext="{Binding}" CellEditEnding="dataGrid_new_CellEditEnding" BeginningEdit="dataGrid_new_BeginningEdit">

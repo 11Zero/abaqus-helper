@@ -17,6 +17,7 @@ using System.Windows.Threading;
 using abaqus_helper.CADCtrl;
 using System.Collections.ObjectModel;
 using System.Data;
+using System.IO;
 
 namespace abaqus_helper
 {
@@ -805,50 +806,7 @@ namespace abaqus_helper
             //CADCtrl.UserDrawLine(new Point(0, 20000), new Point(0, 0));
         }
 
-        private void button2_Click(object sender, RoutedEventArgs e)
-        {
-            CADctrl_frame.UserDelAllLines();
-            get_x_info();
-            get_y_info();
-
-
-            //CADctrl_frame.UserDrawLine(line, 2);
-            CADLine line = new CADLine(0, 0, 0, 0);
-            int xLength = 0;
-            for (int i = 0; i < x_labels.Length; i++)
-            {
-                xLength += x_labels[i];
-            }
-            int yLength = 0;
-            for (int i = 0; i < y_labels.Length; i++)
-            {
-                yLength += y_labels[i];
-            }
-            for (int i = 0; i < x_labels.Length; i++)
-            {
-
-                line.m_xs = line.m_xs + x_labels[i];
-                line.m_xe = line.m_xs;
-                line.m_ys = 0;
-                line.m_ye = yLength;
-                CADctrl_frame.UserDrawLine(line, 2);
-            }
-            line.m_ys = 0;
-            line.m_ye = 0;
-            for (int i = 0; i < y_labels.Length; i++)
-            {
-
-                line.m_ys = line.m_ys + y_labels[i];
-                line.m_ye = line.m_ys;
-                line.m_xs = 0;
-                line.m_xe = xLength;
-                CADctrl_frame.UserDrawLine(line, 2);
-            }
-            CADctrl_frame.UserDrawRect(new Point(0, 0), new Point(200, 100));
-            CADctrl_frame.UserDrawRect(new Point(0, 0), new Point(100, 200));
-
-            CADctrl_frame.ZoomView();
-        }
+      
 
         private void btn_add_concrete_Click(object sender, RoutedEventArgs e)
         {
@@ -1276,6 +1234,8 @@ namespace abaqus_helper
 
         private void comboBox_rebar_style_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (comboBox_rebar_style.SelectedValue == null)
+                return;
             string select_name = comboBox_rebar_style.SelectedValue.ToString();
             object[] select_section_info = null;
             if(all_section_set.ContainsKey(select_name))
@@ -1321,8 +1281,9 @@ namespace abaqus_helper
             }
             CADRect section_rect = this.CADctrl_rebar.UserGetRects().ElementAt(0).Value;
             int rebar_count = 0;
-            foreach(CADPoint value in this.CADctrl_rebar.UserGetPoints().Values)
+            for (int i = 0; i < this.CADctrl_rebar.UserGetPoints().Count;i++ )
             {
+                CADPoint value = this.CADctrl_rebar.UserGetPoints().ElementAt(i).Value;
                 if (value.m_is_rebar != 1)
                     continue;
                 if (value.m_x + value.m_diameter / 2 >= section_rect.m_width ||
@@ -1330,11 +1291,11 @@ namespace abaqus_helper
                             value.m_y + value.m_diameter / 2 >= section_rect.m_height ||
                             value.m_y - value.m_diameter / 2 <= 0)
                 {
-                    this.statusBar.Content = "有钢筋不在截面内，保存失败";
-                    return;
+                    this.CADctrl_rebar.UserDelPoint(value.m_id);
+                    rebar_count--;
+                    this.statusBar.Content = "有钢筋不在截面内，被删除";
                 }
-                if(value.m_is_rebar==1)
-                    rebar_count++;
+                rebar_count++;
             }
             object[] section_info = new object[rebar_count+1];
             section_info[0] = section_rect.Copy();
@@ -1431,13 +1392,190 @@ namespace abaqus_helper
                     m_sel_rect.UpdataWH();
                     this.statusBar.Content = string.Format("构件{0}更新完成", m_sel_rect.m_id);
                     this.CADctrl_frame.UserDrawRect(m_sel_rect);
-                    
-                   
-             
             }
         }
 
-        
+        private void btn_output_Click(object sender, RoutedEventArgs e)
+        {
+            if (comboBox_floor.Items.Count <= 0)
+            {
+                this.statusBar.Content = " 楼层布局信息未确认";
+                return;
+            }
+            FileStream fs = new FileStream(@"output.py", FileMode.Create, FileAccess.Write);
+            StreamWriter streamWriter = new StreamWriter(fs);
+            streamWriter.BaseStream.Seek(0, SeekOrigin.Begin);
+            string str_in = 
+@"# -*- coding:utf-8 -*-
+
+# Do not delete the following import lines
+from abaqus import *
+from abaqusConstants import *
+# mbcs
+import time
+import os
+import re
+
+import section
+import regionToolset
+import displayGroupMdbToolset as dgm
+import part
+import material
+import assembly
+import step
+import interaction
+import load
+import mesh
+import optimization
+import job
+import sketch
+import visualization ###通过run-script执行该脚本时需引用这句
+# from odbAccess import * ###官方解释，通过shell或cmd执行该脚本时需引用这句
+import xyPlot
+import displayGroupOdbToolset as dgo
+import connectorBehavior
+
+### 采用SI(mm)国际单位制
+### abaqus cae startup=Beam.py为cmd下启动执行的py方法
+class AbaqusStructureClass:
+
+    def __init__(self,model='structure',file = 'D:/pymodel.cae'):
+        #初始化信息
+        if not os.path.exists('c:/Abaqus_TempSave'):
+            os.makedirs('c:/Abaqus_TempSave')
+        mdb.saveAs(pathName='c:/Abaqus_TempSave/abaqus_model_'+time.strftime('%Y%m%d-%H%M%S', time.localtime()))
+        Mdb()
+        self.modelName = model
+        self.modelVolume = [0,0,0]
+        self.filePath = file
+        self.partLength = {}
+        self.partCount = {}
+        self.rebarStyle = {}
+        self.partSize = {}
+        self.allCols = {}
+        self.colsPos = {}
+        self.colsPart = {}
+        self.colsBeamState = {} #用于存储四个布尔值表示柱四周梁的有无[up,down,left,right]
+        self.colsColState = {} #用于存储两个布尔值表示柱子上下是否有柱子[up,down]
+        self.allZBeams = {}
+        self.zBeamsPos = {}
+        self.zBeamsPart = {}
+        self.allXBeams = {}
+        self.xBeamsPos = {}
+        self.xBeamsPart = {}
+
+    def __del__(self):
+        #退出前保存
+        mdb.save()
+
+    def startBuilding(self):
+
+        mdb.models.changeKey(fromName='Model-1', toName=self.modelName)  # 重命名模型
+        session.viewports['Viewport: 1'].setValues(displayedObject=None)  # 设置视口
+        mdb.saveAs(pathName=self.filePath)  # 存储";
+            streamWriter.Write(str_in);
+            int x_min = 0, x_max = 0, z_min = 0, z_max = 0,y_min=0,y_max=0;
+            Queue<string> tmpqueue = new Queue<string>();
+            for (int i = 0; i < ctrl_all_rects.Length; i++)
+            {
+                int floor_height = 0;
+                for (int j = 0; j < ctrl_all_rects[i].Count; j++)
+                {
+                    
+                    CADRect item = ctrl_all_rects[i].ElementAt(j).Value;
+                    if(item.m_flag==1)
+                        floor_height = (int)item.m_len;
+                    x_min = x_min < (int)(item.m_xs < item.m_xe ? item.m_xs : item.m_xe) ? x_min : (int)(item.m_xs < item.m_xe ? item.m_xs : item.m_xe);
+                    x_max = x_max > (int)(item.m_xs > item.m_xe ? item.m_xs : item.m_xe) ? x_max : (int)(item.m_xs > item.m_xe ? item.m_xs : item.m_xe);
+                    z_min = z_min < (int)(item.m_xs < item.m_xe ? item.m_xs : item.m_xe) ? z_min : (int)(item.m_xs < item.m_xe ? item.m_xs : item.m_xe);
+                    z_max = z_max > (int)(item.m_xs > item.m_xe ? item.m_xs : item.m_xe) ? z_max : (int)(item.m_xs > item.m_xe ? item.m_xs : item.m_xe);
+                    str_in = comboBox_concrete.Items[item.m_concrete].ToString();
+
+                    if (!tmpqueue.Contains(str_in) && str_in != "")
+                        tmpqueue.Enqueue(str_in);
+                }
+                y_max = y_max + floor_height;
+            }
+            str_in = string.Format("self.modelVolume = [{0}, {1}, {2}]\r\n",x_max,y_max,z_max);
+            streamWriter.Write(str_in);
+            for (int i = 0; i < tmpqueue.Count; i++)
+            {
+                str_in = string.Format("self.createMaterialConcrete('{0}')\r\n", tmpqueue.ElementAt(i));
+                streamWriter.Write(str_in);
+            }
+            tmpqueue.Clear();
+
+            Queue<string> queue_rebar = new Queue<string>();
+            Queue<string> queue_strength = new Queue<string>();
+            for (int i = 0; i < all_section_set.Count; i++)
+            {
+                for (int j = 1; j < all_section_set.ElementAt(i).Value.Length; j++)
+                {
+                    CADPoint point = (CADPoint)all_section_set.ElementAt(i).Value[j];
+                    str_in = comboBox_strength.Items[point.m_strength].ToString();
+                    if (!queue_strength.Contains(str_in))
+                        queue_strength.Enqueue(str_in);
+                    str_in = "rebar-r" + comboBox_diameter.Items[point.m_diameter].ToString()+"-"+str_in;
+                    str_in = str_in.Replace(".", "_");
+                    if (!queue_rebar.Contains(str_in))
+                        queue_rebar.Enqueue(str_in);
+                    
+                }
+            }
+            for (int i = 0; i < queue_strength.Count; i++)
+            {
+                str_in = string.Format("\t\tself.createMaterialSteel('{0}')\r\n", queue_strength.ElementAt(i));
+                streamWriter.Write(str_in);
+            }
+            queue_strength.Clear();
+
+            for (int i = 0; i < queue_rebar.Count; i++)
+            {
+                string info = queue_rebar.ElementAt(i);
+                str_in = string.Format("\t\tself.createSectionRebar('{0}',{1},'{2}')\r\n", info, info.Substring(info.IndexOf("-") + 2, info.LastIndexOf("-") - info.IndexOf("-")-2).Replace("_", "."), info.Substring(info.LastIndexOf('-') + 1));
+                streamWriter.Write(str_in);
+            }
+            queue_rebar.Clear();
+                //string str_in = "混凝土\r\n";
+                //streamWriter.Write(str_in);
+                //for (int i = 0; i < comboBox_concrete.Items.Count; i++)
+                //{
+                //    str_in = comboBox_concrete.Items[i].ToString();
+                //    streamWriter.Write(str_in + "\r\n");
+                //}
+                //str_in = "截面\r\n";
+                //streamWriter.Write(str_in);
+                //for (int i = 0; i < all_section_set.Count; i++)
+                //{
+                //    str_in = all_section_set.ElementAt(i).Key;
+                //    streamWriter.Write(str_in + "\r\n");
+                //    CADRect rect = (CADRect)all_section_set.ElementAt(i).Value[0];
+
+                //    str_in = rect.m_width.ToString();
+                //    streamWriter.Write("\t" + str_in + "\r\n");
+                //    str_in = rect.m_height.ToString();
+                //    streamWriter.Write("\t" + str_in + "\r\n");
+
+
+                //    for (int j = 1; j < all_section_set.ElementAt(i).Value.Length; j++)
+                //    {
+                //        CADPoint point = (CADPoint)all_section_set.ElementAt(i).Value[j];
+                //        str_in = comboBox_diameter.Items[point.m_diameter].ToString();
+                //        streamWriter.Write("\t\t" + str_in + "\r\n");
+                //        str_in = comboBox_strength.Items[point.m_strength].ToString();
+                //        streamWriter.Write("\t\t" + str_in + "\r\n");
+                //        str_in = (point.m_x-rect.m_xs).ToString();
+                //        streamWriter.Write("\t\t" + str_in + "\r\n");
+                //        str_in = (point.m_y - rect.m_ys).ToString();
+                //        streamWriter.Write("\t\t" + str_in + "\r\n");
+                //    }
+                //}
+
+                streamWriter.Flush();
+            streamWriter.Close();
+            this.statusBar.Content = "写入完成";
+            //CADctrl_frame.ZoomView();
+        }
      
     }
 }

@@ -94,29 +94,7 @@ namespace abaqus_helper.CADCtrl
             key_down_del = false;
         }
 
-        /// <summary>
-        /// 画直线
-        /// </summary>
-        /// <param name="sX">起点x坐标</param>
-        /// <param name="sY">起点y坐标</param>
-        /// <param name="eX">终点x坐标</param>
-        /// <param name="eY">终点y坐标</param>
-        /// <param name="isArrow">是否带箭头</param>
-        /// <param name="withBorder">是否带边界线</param>
-        //private void drawLine(int sX, int sY, int eX, int eY, bool isArrow = false, bool withBorder = true)
-        //{
-        //    OpenGL gl = openGLControl.OpenGL;
-        //    gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
-        //    gl.LoadIdentity();
-        //    gl.Color(1.0f, 1.0f, 1.0f);
-        //    gl.Translate(-1, -1, 0);
-        //    gl.Begin(SharpGL.Enumerations.BeginMode.Lines);
-        //    gl.Vertex(sX * xRange + 1 - xTimes, sY * yRange + 1 - yTimes);
-        //    gl.Vertex(eX * xRange + 1 - xTimes, eY * yRange + 1 - yTimes);
-        //    gl.End();
-        //    //gl.Color(0.0f, 1.0f, 0.0f);
-
-        //}
+      
 
         private void OpenGLControl_OpenGLDraw(object sender, OpenGLEventArgs args)
         {
@@ -745,7 +723,9 @@ namespace abaqus_helper.CADCtrl
             {
                 if (((int)(value.m_xs + value.m_xe) - (int)(rect.m_xs + rect.m_xe)) == 0 &&
                     ((int)(value.m_ys + value.m_ye) - (int)(rect.m_ys + rect.m_ye)) == 0 &&
-                    (int)(value.m_height - rect.m_height) == 0 && (int)(value.m_width - rect.m_width) == 0)
+                    (int)(value.m_height - rect.m_height) == 0 &&
+                    (int)(value.m_width - rect.m_width) == 0 && 
+                    value.m_id != rect.m_id)
                 {
                     return false;
                 }
