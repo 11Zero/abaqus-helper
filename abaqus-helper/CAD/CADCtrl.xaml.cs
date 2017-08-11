@@ -94,7 +94,29 @@ namespace abaqus_helper.CADCtrl
             key_down_del = false;
         }
 
-      
+        /// <summary>
+        /// 画直线
+        /// </summary>
+        /// <param name="sX">起点x坐标</param>
+        /// <param name="sY">起点y坐标</param>
+        /// <param name="eX">终点x坐标</param>
+        /// <param name="eY">终点y坐标</param>
+        /// <param name="isArrow">是否带箭头</param>
+        /// <param name="withBorder">是否带边界线</param>
+        //private void drawLine(int sX, int sY, int eX, int eY, bool isArrow = false, bool withBorder = true)
+        //{
+        //    OpenGL gl = openGLControl.OpenGL;
+        //    gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
+        //    gl.LoadIdentity();
+        //    gl.Color(1.0f, 1.0f, 1.0f);
+        //    gl.Translate(-1, -1, 0);
+        //    gl.Begin(SharpGL.Enumerations.BeginMode.Lines);
+        //    gl.Vertex(sX * xRange + 1 - xTimes, sY * yRange + 1 - yTimes);
+        //    gl.Vertex(eX * xRange + 1 - xTimes, eY * yRange + 1 - yTimes);
+        //    gl.End();
+        //    //gl.Color(0.0f, 1.0f, 0.0f);
+
+        //}
 
         private void OpenGLControl_OpenGLDraw(object sender, OpenGLEventArgs args)
         {
@@ -723,9 +745,7 @@ namespace abaqus_helper.CADCtrl
             {
                 if (((int)(value.m_xs + value.m_xe) - (int)(rect.m_xs + rect.m_xe)) == 0 &&
                     ((int)(value.m_ys + value.m_ye) - (int)(rect.m_ys + rect.m_ye)) == 0 &&
-                    (int)(value.m_height - rect.m_height) == 0 &&
-                    (int)(value.m_width - rect.m_width) == 0 && 
-                    value.m_id != rect.m_id)
+                    (int)(value.m_height - rect.m_height) == 0 && (int)(value.m_width - rect.m_width) == 0)
                 {
                     return false;
                 }
@@ -765,13 +785,10 @@ namespace abaqus_helper.CADCtrl
                 point.m_y = this_rect.m_ye;
                 this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
-                if (isRebar != 1)
-                {
-                    point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
-                    point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
-                    this.AddPoint(point);//中心
-                    pointsItems.Add(PointNumber);
-                }
+                point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
+                point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
+                this.AddPoint(point);//中心
+                pointsItems.Add(PointNumber);
                 point.m_x = this_rect.m_xs;
                 point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
                 this.AddPoint(point);//边中点
@@ -806,45 +823,34 @@ namespace abaqus_helper.CADCtrl
                 List<int> pointsItems = new List<int>();
                 this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
-                point = new CADPoint();
                 point.m_x = this_rect.m_xs;
                 point.m_y = this_rect.m_ye;
                 this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
-                point = new CADPoint();
                 point.m_x = this_rect.m_xe;
                 point.m_y = this_rect.m_ys;
                 this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
-                point = new CADPoint();
                 point.m_x = this_rect.m_xe;
                 point.m_y = this_rect.m_ye;
                 this.AddPoint(point);//角点
                 pointsItems.Add(PointNumber);
-                if (isRebar != 1)
-                {
-                    point = new CADPoint();
-                    point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
-                    point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
-                    this.AddPoint(point);//中心
-                    pointsItems.Add(PointNumber);
-                }
-                point = new CADPoint();
+                point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
+                point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
+                this.AddPoint(point);//中心
+                pointsItems.Add(PointNumber);
                 point.m_x = this_rect.m_xs;
                 point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
                 this.AddPoint(point);//边中点
                 pointsItems.Add(PointNumber);
-                point = new CADPoint();
                 point.m_x = this_rect.m_xe;
                 point.m_y = (this_rect.m_ys + this_rect.m_ye) / 2;
                 this.AddPoint(point);//边中点
                 pointsItems.Add(PointNumber);
-                point = new CADPoint();
                 point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
                 point.m_y = this_rect.m_ys;
                 this.AddPoint(point);//边中点
                 pointsItems.Add(PointNumber);
-                point = new CADPoint();
                 point.m_x = (this_rect.m_xs + this_rect.m_xe) / 2;
                 point.m_y = this_rect.m_ye;
                 this.AddPoint(point);//边中点
@@ -925,8 +931,6 @@ namespace abaqus_helper.CADCtrl
             {
                 foreach (int value in AllRects.Keys)
                 {
-                    if (value == this_rect.m_id)
-                        continue;
                     CADRect cur_this_rect = AllRects[value];
                     CADLine this_rect_line = new CADLine();
                     this_rect_line.m_xs = this_rect.m_xs;
@@ -1226,7 +1230,7 @@ namespace abaqus_helper.CADCtrl
 
                 double r = 12;
                 if (point.m_diameter > 0)
-                    r = 10*point.m_diameter;
+                    r = point.m_diameter;
                 double pi = 3.1415926;
                 int n = 20;
                 for (int i = 0; i < n; i++)
@@ -1312,7 +1316,7 @@ namespace abaqus_helper.CADCtrl
                 m_openGLCtrl.Color(0.7f, 0.2f, 0.7f);
                 double r = 12;
                 if (point.m_diameter > 0)
-                    r = 10*point.m_diameter;
+                    r = point.m_diameter;
                 double pi = 3.1415926;
                 int n = 20;
                 for (int i = 0; i < n; i++)
@@ -1363,10 +1367,7 @@ namespace abaqus_helper.CADCtrl
 
         private void DrawText(string text, Point pos)
         {
-            float font_size = 12.0f;
-            if (isRebar == 1)
-                font_size = 8.0f;
-            m_openGLCtrl.DrawText((int)(pos.X), (int)(pos.Y), 0.5f, 1.0f, 0.5f, "Lucida Console", font_size, text);
+            m_openGLCtrl.DrawText((int)(pos.X), (int)(pos.Y), 0.5f, 1.0f, 0.5f, "Lucida Console", 12.0f, text);
         }
 
         private void DrawGrids()
@@ -1822,22 +1823,6 @@ namespace abaqus_helper.CADCtrl
             this.DelRect(rect_id);
         }
 
-        public void UserDelPoint(int point_id)
-        {
-            if (this.SelPoints.ContainsKey(point_id) && SelPoints[point_id].m_is_rebar==1)
-                this.SelPoints.Remove(point_id);
-            if (this.AllPoints.ContainsKey(point_id) && AllPoints[point_id].m_is_rebar == 1)
-                this.AllPoints.Remove(point_id);
-        }
-
-        public void UserDelAllPoints()
-        {
-            this.SelPoints.Clear();
-            this.AllPoints.Clear();
-            PointNumber = 1;
-            this.AllPoints.Add(PointNumber,new CADPoint());
-            
-        }
 
         public bool UserDrawRect(Point p1, Point p2, int color_id = 0)
         {
@@ -1867,11 +1852,6 @@ namespace abaqus_helper.CADCtrl
         public void UserSelRect(int id)
         {
             this.SelRect(id);
-        }
-
-        public void UserSelPoint(int id)
-        {
-            this.SelPoint(id);
         }
 
         public int[] UserGetSelLines()
@@ -1926,7 +1906,7 @@ namespace abaqus_helper.CADCtrl
             m_center_offset.Y = -(m_border.m_ye - m_border.m_ys) / 2 * m_pixaxis * m_scale;
         }
 
-        public void ReactToESC()
+        public void RectToESC()
         {
             if (!key_down_move && !key_down_copy)
             {
@@ -2079,7 +2059,7 @@ namespace abaqus_helper.CADCtrl
         public int m_flag { get; set; }//梁柱标志，0表示梁，1表示柱
         public float m_width { get; set; }
         public float m_height { get; set; }
-        public string m_rebar { get; set; }//钢筋布置索引，编号意味着对应1好钢筋图
+        public int m_rebar { get; set; }//钢筋布置索引，编号意味着对应1好钢筋图
         public int m_concrete { get; set; }//混凝土等级索引，需要预定义好
         public CADRect()
         {
@@ -2091,7 +2071,7 @@ namespace abaqus_helper.CADCtrl
             m_ye = 0.0f;
             m_len = 0.0f;
             m_flag = 1;
-            m_rebar = "";
+            m_rebar = 0;
             m_concrete = 0;
             m_width = Math.Abs(m_xs - m_xe);
             m_height = Math.Abs(m_ys - m_ye);
@@ -2107,7 +2087,7 @@ namespace abaqus_helper.CADCtrl
             m_ye = (float)p2.Y;
             m_len = 0.0f;
             m_flag = flag;
-            m_rebar = "";
+            m_rebar = 0;
             m_concrete = 0;
             m_width = Math.Abs(m_xs - m_xe);
             m_height = Math.Abs(m_ys - m_ye);
@@ -2123,7 +2103,7 @@ namespace abaqus_helper.CADCtrl
             m_ye = (float)ye;
             m_len = 0.0f;
             m_flag = flag;
-            m_rebar = "";
+            m_rebar = 0;
             m_concrete = 0;
             m_width = Math.Abs(m_xs - m_xe);
             m_height = Math.Abs(m_ys - m_ye);
@@ -2176,8 +2156,8 @@ namespace abaqus_helper.CADCtrl
             m_x = 0.0f;
             m_y = 0.0f;
             m_is_rebar = 0;
-            m_diameter = -1;
-            m_strength = -1;
+            m_diameter = 0;
+            m_strength = 0;
         }
 
 
@@ -2186,8 +2166,8 @@ namespace abaqus_helper.CADCtrl
             m_x = (float)x;
             m_y = (float)y;
             m_is_rebar = 0;
-            m_diameter = -1;
-            m_strength = -1;
+            m_diameter = 0;
+            m_strength = 0;
         }
 
         public CADPoint Copy()
