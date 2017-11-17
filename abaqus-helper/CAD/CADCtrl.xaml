@@ -4,7 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:sharpGL="clr-namespace:SharpGL.WPF;assembly=SharpGL.WPF"
-             mc:Ignorable="d" d:DesignHeight="353" d:DesignWidth="493" Loaded="UserControl_Loaded" PreviewKeyDown="UserControl_PreviewKeyDown">
+             mc:Ignorable="d" d:DesignHeight="353" d:DesignWidth="493"
+             Loaded="UserControl_Loaded" PreviewKeyDown="UserControl_PreviewKeyDown">
     <sharpGL:OpenGLControl 
             Name="openGLCtrl"
             OpenGLDraw="OpenGLControl_OpenGLDraw" 
@@ -13,8 +14,9 @@
             MouseUp="OpenGLControl_MouseUp"
             MouseMove="OpenGLControl_MouseMove"
             MouseWheel="OpenGLControl_MouseWheel" 
+         
         Height="{Binding Path=ActualHeight,ElementName=abaqus_helper.CADCtrl.CADCtrl}"
-        Width="{Binding Path=ActualWidth,ElementName=abaqus_helper.CADCtrl.CADCtrl}" />
+        Width="{Binding Path=ActualWidth,ElementName=abaqus_helper.CADCtrl.CADCtrl}" Focusable="True" />
     <!--<Grid Height="351" Width="490">
         <sharpGL:OpenGLControl 
             Name="openGLCtrl"
